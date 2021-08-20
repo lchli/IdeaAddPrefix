@@ -1,0 +1,65 @@
+<idea-plugin url="https://github.com/pbreault/adb-idea">
+    <id>com.developerphil.adbidea</id>
+    <name>ADB Idea</name>
+    <version>1.6.2</version>
+    <vendor url="http://www.developerphil.com">Philippe Breault</vendor>
+
+    <description><![CDATA[
+        给工程资源添加前缀:<br />
+        <ul>
+            <li>给资源文件添加前缀</li>
+            <li>给java/kotlin文件添加前缀</li>
+            <li>给资源文件里面的内容添加前缀</li>
+
+        </ul>
+        <br />
+        The basic way to invoke a command:
+        <ul>
+            <li>Through the Tools->LchAddPrefix->menu</li>
+
+        </ul>
+        ]]></description>
+
+
+    <change-notes><![CDATA[
+        <b>1.0.0</b>
+
+        ]]>
+    </change-notes>
+
+    <!-- Android Studio 4.0+ -->
+    <!-- see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/build_number_ranges.html -->
+    <idea-version since-build="193"/>
+
+    <depends>com.intellij.modules.platform</depends>
+    <depends>org.jetbrains.android</depends>
+    <depends>org.jetbrains.kotlin</depends>
+
+
+
+    <actions>
+        <group id="LchAddPrefix" text="LchAddPrefix" description="LchAddPrefix idea" popup="true">
+            <action id="com.developerphil.adbidea.action.AddPrefixToBatchFile"
+                    class="com.developerphil.adbidea.action.AddPrefixToBatchFile"
+                    text="Rename"
+                    description="Rename ....">
+            </action>
+
+            <add-to-group group-id="AndroidToolsGroup" anchor="first"/>
+            <separator/>
+
+        </group>
+    </actions>
+
+    <project-components>
+        <component>
+            <implementation-class>com.developerphil.adbidea.ObjectGraph</implementation-class>
+        </component>
+    </project-components>
+
+    <application-components>
+        <component>
+            <implementation-class>com.developerphil.adbidea.Application</implementation-class>
+        </component>
+    </application-components>
+</idea-plugin>

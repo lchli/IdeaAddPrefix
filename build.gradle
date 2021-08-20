@@ -1,0 +1,82 @@
+buildscript {
+    ext.ktversion="1.3.72"
+
+    repositories {
+        mavenCentral()
+        jcenter()
+    }
+    dependencies {
+
+    }
+}
+
+plugins {
+    id 'java'
+    id 'org.jetbrains.intellij' version '1.1.2'
+    id "org.jetbrains.kotlin.jvm" version "1.3.72"
+}
+
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+
+compileKotlin {
+    kotlinOptions.jvmTarget = "1.8"
+}
+compileTestKotlin {
+    kotlinOptions.jvmTarget = "1.8"
+}
+
+repositories {
+    mavenCentral()
+    jcenter()
+}
+
+sourceSets {
+    main {
+        resources {
+            exclude 'website/adb_operations_popup.png'
+            exclude 'website/find_actions.png'
+            exclude 'website/debug_howto.png'
+        }
+    }
+}
+//
+if (!hasProperty('StudioCompilePath')) {
+    throw new GradleException("No StudioCompilePath value was set, please create gradle.properties file")
+}
+
+intellij {
+   // version = "2020.2.4"
+    pluginName = "LchAddPrefix"
+    updateSinceUntilBuild = false
+   // alternativeIdePath = <ENTER THE PATH TO YOUR ANDROID STUDIO FOLDER HERE>
+    localPath = project.hasProperty("StudioRunPath") ? StudioRunPath : StudioCompilePath
+
+}
+
+group 'com.developerphil.intellij.plugin.adbidea'
+
+dependencies {
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:${project.ext.ktversion}"
+    implementation "org.jooq:joor-java-8:0.9.7"
+
+    compileOnly fileTree(dir: "$StudioCompilePath/plugins/android/lib", include: ['*.jar'])
+    compileOnly fileTree(dir: "$StudioCompilePath/lib", include: ['*.jar'])
+
+    compileOnly "org.jetbrains.kotlin:kotlin-compiler-embeddable:${project.ext.ktversion}"
+
+}
+//
+task(verifySetup) {
+    doLast {
+        def ideaJar = "$StudioCompilePath/lib/idea.jar"
+        if (!file(ideaJar).exists()) {
+            throw new GradleException("$ideaJar not found, set StudioCompilePath in gradle.properties")
+        }
+    }
+}
+
+
+compileJava.dependsOn verifySetup
