@@ -17,16 +17,15 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * lich。
+ * Created by lichenghang .
  */
 public class RefactoringDialog extends DialogWrapper {
 
     private static final String HELP_MSG = "用于给android的module添加资源前缀，以避免资源冲突。" +
-            "\nrenameResFiles:重命名所有资源文件。\nrenameContentRes:重命名每个资源文件里面的name属性。" +
-            "\n执行上面任一操作后需要rebuild一下才应该执行下一个操作，以确保引用的刷新。\n作者：老李";
+            "\nrenameResFiles:重命名所有资源文件。\nrenameXmlContentRes:重命名每个资源文件里面的name属性。\nrenameJavaKotlin:重命名每个Java和kotlin文件。" +
+            "\n执行上面任一操作后需要rebuild一下才应该执行下一个操作，以确保引用的刷新。\n作者：李成航";
 
     private final EditorTextField editorTextField;
-    private final EditorTextField editorTextFieldResPath;
     private final JPanel jbPanel;
     private Action myRefactorAction;
     protected final Project myProject;
@@ -39,14 +38,12 @@ public class RefactoringDialog extends DialogWrapper {
         editorTextField = new EditorTextField("请输入prefix", myProject, null);
         editorTextField.setMinimumSize(new Dimension(300, 100));
 
-        editorTextFieldResPath = new EditorTextField("./app/src/main/res", myProject, null);
-        editorTextFieldResPath.setMinimumSize(new Dimension(300, 100));
-
         jbPanel = new JPanel();
         jbPanel.setLayout(new GridLayout(2, 1));
         jbPanel.setComponentOrientation(ComponentOrientation.LEFT_TO_RIGHT);
         jbPanel.add(editorTextField);
-        jbPanel.add(editorTextFieldResPath);
+
+        setTitle("给选中目录下所有资源添加前缀");
 
         init();
     }
@@ -69,9 +66,10 @@ public class RefactoringDialog extends DialogWrapper {
 
 
     public interface DoRenameListener {
-        void doRename(String prefix, String resPath);
+        void doRename(String prefix);
 
-        void doRenameContent(String prefix, String resPath);
+        void doRenameContent(String prefix);
+
         void doRenameClass(String prefix);
     }
 
@@ -93,9 +91,9 @@ public class RefactoringDialog extends DialogWrapper {
             closeOKAction();
 
             if (isRenameContent) {
-                mDoRenameListener.doRenameContent(editorTextField.getText(), editorTextFieldResPath.getText());
+                mDoRenameListener.doRenameContent(editorTextField.getText());
             } else {
-                mDoRenameListener.doRename(editorTextField.getText(), editorTextFieldResPath.getText());
+                mDoRenameListener.doRename(editorTextField.getText());
             }
         }
     }
@@ -145,7 +143,7 @@ public class RefactoringDialog extends DialogWrapper {
     private class RefactorContentAction extends AbstractAction {
 
         public RefactorContentAction() {
-            putValue(Action.NAME, "renameContentRes");
+            putValue(Action.NAME, "renameXmlContentRes");
             putValue(DEFAULT_ACTION, Boolean.FALSE);
         }
 

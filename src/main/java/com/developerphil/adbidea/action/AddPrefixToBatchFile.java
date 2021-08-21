@@ -3,10 +3,10 @@ package com.developerphil.adbidea.action;
 import com.intellij.json.psi.impl.JsonFileImpl;
 import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.vfs.VfsUtilCore;
 import com.intellij.openapi.vfs.VirtualFile;
-import com.intellij.openapi.vfs.VirtualFileVisitor;
-import com.intellij.psi.*;
+import com.intellij.psi.PsiDirectory;
+import com.intellij.psi.PsiElement;
+import com.intellij.psi.XmlRecursiveElementVisitor;
 import com.intellij.psi.impl.file.PsiBinaryFileImpl;
 import com.intellij.psi.impl.source.xml.XmlFileImpl;
 import com.intellij.psi.search.GlobalSearchScope;
@@ -14,23 +14,15 @@ import com.intellij.psi.xml.XmlAttribute;
 import com.intellij.psi.xml.XmlAttributeValue;
 import com.intellij.psi.xml.XmlDocument;
 import com.intellij.psi.xml.XmlTag;
-import com.intellij.refactoring.RefactoringActionHandler;
-import com.intellij.refactoring.actions.RenameElementAction;
-import com.intellij.refactoring.rename.*;
-import com.intellij.refactoring.util.CommonRefactoringUtil;
+import com.intellij.refactoring.rename.RenameProcessor;
 import com.intellij.usageView.UsageInfo;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.jetbrains.kotlin.com.intellij.psi.PsiClass;
-import org.jetbrains.kotlin.com.intellij.psi.impl.source.PsiClassImpl;
-import org.jetbrains.kotlin.psi.KtClass;
-import org.jetbrains.kotlin.psi.KtFile;
 
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
@@ -43,42 +35,30 @@ public class AddPrefixToBatchFile extends AnAction {
 
     private Project project;
     private DataContext context;
-    private AnActionEvent e;
+    private AnActionEvent mAnActionEvent;
 
 
     @Override
     public void actionPerformed(AnActionEvent e) {
         context = e.getDataContext();
-        this.e = e;
-
-        Thread.UncaughtExceptionHandler oldErrorHandler = Thread.getDefaultUncaughtExceptionHandler();
-
-        Thread.setDefaultUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
-            @Override
-            public void uncaughtException(Thread t, Throwable e) {
-                e.printStackTrace();
-                System.err.println("[****error**********************]\n" + e.getMessage());
-                VirtualFile baseDir = project.getBaseDir();
-                try {
-                    VirtualFile log = baseDir.findOrCreateChildData(this, "./rename.log");
-                    OutputStream outs = log.getOutputStream(this);
-                    e.printStackTrace(new PrintWriter(outs));
-                    outs.close();
-                } catch (IOException e1) {
-                    e1.printStackTrace();
-                }
-
-                oldErrorHandler.uncaughtException(t, new Exception(e.getMessage()));
-            }
-        });
-
+        mAnActionEvent = e;
         project = e.getProject();
         if (project == null) {
             throw new NullPointerException("project is null.");
         }
 
+        Thread.UncaughtExceptionHandler oldErrorHandler = Thread.getDefaultUncaughtExceptionHandler();
+        Thread.setDefaultUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
+            @Override
+            public void uncaughtException(Thread t, Throwable e) {
+                e.printStackTrace();
+                PlugUtil.showMsg(getStack(e), project);
+                oldErrorHandler.uncaughtException(t, new Exception(e.getMessage()));
+            }
+        });
+
+
         RefactoringDialog dialog = new RefactoringDialog(project, false);
-        dialog.setTitle("给res目录下所有资源文件添加前缀");
         dialog.setDoRenameListener(new RefactoringDialog.DoRenameListener() {
             @Override
             public void doRenameClass(String prefix) {
@@ -86,39 +66,13 @@ public class AddPrefixToBatchFile extends AnAction {
             }
 
             @Override
-            public void doRename(String prefix, String resPath) {
+            public void doRename(String prefix) {
                 renameResFile(prefix);
-//
-//                VirtualFile baseDir = project.getBaseDir();
-//                if (baseDir == null) {
-//                    throw new NullPointerException("baseDir is null.");
-//                }
-//                System.err.println("baseDir path:" + baseDir.getPath());
-//
-//                VirtualFile resDir = baseDir.findFileByRelativePath(resPath);
-//                if (resDir == null) {
-//                    throw new NullPointerException("resDir is null.");
-//                }
-//                System.err.println("res path:" + resDir.getPath());
-//
-//                recusiveRenameResFile(resDir, prefix);
             }
 
             @Override
-            public void doRenameContent(String prefix, String resPath) {
-                VirtualFile baseDir = project.getBaseDir();
-                if (baseDir == null) {
-                    throw new NullPointerException("baseDir is null.");
-                }
-                System.err.println("baseDir path:" + baseDir.getPath());
-
-                VirtualFile resDir = baseDir.findFileByRelativePath(resPath);
-                if (resDir == null) {
-                    throw new NullPointerException("resDir is null.");
-                }
-                System.err.println("res path:" + resDir.getPath());
-
-                //recusiveRenameContent(resDir, prefix);
+            public void doRenameContent(String prefix) {
+                renameXmlContent(prefix);
             }
         });
 
@@ -126,100 +80,6 @@ public class AddPrefixToBatchFile extends AnAction {
 
     }
 
-    private void recusiveRenameContent(VirtualFile dir, String prefix) {
-
-        VfsUtilCore.visitChildrenRecursively(dir, new VirtualFileVisitor() {
-            @Override
-            public boolean visitFile(@NotNull VirtualFile file) {
-                if (!file.isDirectory()) {
-                    renameFileContent(file, prefix);
-                }
-                return super.visitFile(file);
-            }
-        });
-
-    }
-
-    private void recusiveRenameResFile(VirtualFile dir, String prefix) {
-
-        VfsUtilCore.visitChildrenRecursively(dir, new VirtualFileVisitor() {
-            @Override
-            public boolean visitFile(@NotNull VirtualFile file) {
-                if (!file.isDirectory()) {
-                    renameResFile(file, prefix);
-                }
-                return super.visitFile(file);
-            }
-        });
-
-
-    }
-
-    private void renameFileContent(VirtualFile f, String prefix) {
-        System.err.println("oldName:" + f.getName());
-
-        PsiFile psiFile = PsiManager.getInstance(project).findFile(f);
-        if (psiFile == null) {
-            System.err.println("psiFile is null:" + f.getName());
-            return;
-        }
-        String oldName = psiFile.getName();
-        if (!oldName.endsWith(".xml")) {//just handle xml file content.
-            return;
-        }
-
-        ArrayList<XmlAttributeValue> resNames = getResNameFromLayout(psiFile, new ArrayList<XmlAttributeValue>());
-
-        for (XmlAttributeValue xmlAttribute : resNames) {
-
-            if (!xmlAttribute.getValue().startsWith(prefix)) {
-                new RenameProcessor(project, xmlAttribute, prefix + xmlAttribute.getValue(), false, true) {
-                    @Override
-                    protected boolean isPreviewUsages() {
-                        return false;
-                    }
-
-                    @Override
-                    protected void previewRefactoring(@NotNull UsageInfo[] usages) {
-                        super.execute(usages);
-                    }
-                }.run();
-            }
-        }
-
-    }
-
-    private void renameResFile(VirtualFile f, String prefix) {
-        System.err.println("oldName:" + f.getName());
-
-        PsiFile psiFile = PsiManager.getInstance(project).findFile(f);
-        if (psiFile == null) {
-            System.err.println("psiFile is null:" + f.getName());
-            return;
-        }
-        String oldName = psiFile.getName();
-        if (oldName.contains(".xml")) {
-            oldName = oldName.split("\\.")[0];
-        }
-
-        if (!oldName.startsWith(prefix)) {
-            RenameProcessor processor = new RenameProcessor(project, psiFile, prefix + oldName, GlobalSearchScope.projectScope(project), false, false) {
-                @Override
-                protected boolean isPreviewUsages() {
-                    return false;
-                }
-
-                @Override
-                protected void previewRefactoring(@NotNull UsageInfo[] usages) {
-                    super.execute(usages);
-                }
-
-            };
-            processor.run();
-        }
-
-
-    }
 
     @Nullable
     private PsiElement findSelectedPsiElement() {
@@ -238,6 +98,71 @@ public class AddPrefixToBatchFile extends AnAction {
         return psiElements[0];
     }
 
+    private interface ConditionPredicate {
+        boolean isMatch(PsiElement element);
+    }
+
+    private void findMatchedChildrenInDirOnly(PsiElement startRoot, List<PsiElement> result, ConditionPredicate condition) {
+        if (startRoot == null || result == null) {
+            return;
+        }
+        PsiElement[] children = startRoot.getChildren();
+        if (children == null || children.length <= 0) {
+            return;
+        }
+        for (PsiElement e : children) {
+            if (condition.isMatch(e)) {
+                result.add(e);
+            }
+
+            if (e instanceof PsiDirectory) {
+                findMatchedChildrenInDirOnly(e, result, condition);
+            }
+        }
+    }
+
+
+    public final void renameXmlContent(String prefix) {
+
+        @Nullable PsiElement startRoot = findSelectedPsiElement();
+        if (startRoot == null) {
+            PlugUtil.showMsg("startRoot is null", project);
+            return;
+        }
+        List<PsiElement> result = new ArrayList<>();
+
+        findMatchedChildrenInDirOnly(startRoot, result, new ConditionPredicate() {
+            @Override
+            public boolean isMatch(PsiElement element) {
+                if (element.getClass().getName().equals("com.intellij.psi.impl.source.xml.XmlFileImpl")) {
+
+                    return true;
+                }
+
+                return false;
+            }
+        });
+
+        for (PsiElement xmlFile : result) {
+            renameContent(xmlFile, prefix);
+        }
+
+    }
+
+
+    private void renameContent(PsiElement xmlFile, String prefix) {
+        List<PsiElement> result = getResNameFromLayout(xmlFile);
+        if (result == null || result.isEmpty()) {
+            PlugUtil.showMsg("skip xml:" + xmlFile, project);
+            return;
+        }
+
+        for (PsiElement p : result) {
+            //PlugUtil.showMsg(p.toString() + "@" + p.getClass().getName(), project);
+            dor(p, prefix);
+        }
+    }
+
 
     public final void renameResFile(String prefix) {
 
@@ -246,69 +171,52 @@ public class AddPrefixToBatchFile extends AnAction {
             PlugUtil.showMsg("startRoot is null", project);
             return;
         }
+        List<PsiElement> result = new ArrayList<>();
 
-        List<PsiElement> psiElements2 = new ArrayList<>();
-
-        startRoot.accept(new PsiRecursiveElementWalkingVisitor() {
+        findMatchedChildrenInDirOnly(startRoot, result, new ConditionPredicate() {
             @Override
-            public void visitElement(@NotNull PsiElement element) {
-
+            public boolean isMatch(PsiElement element) {
                 if (element.getClass().getName().equals("com.intellij.psi.impl.source.xml.XmlFileImpl") ||
                         element.getClass().getName().equals("com.intellij.psi.impl.file.PsiBinaryFileImpl") ||
                         element.getClass().getName().equals("com.intellij.json.psi.impl.JsonFileImpl")) {
 
-                    psiElements2.add(element);
+                    return true;
                 }
 
-                PlugUtil.showMsg(element.getClass().getName(), project);
-                super.visitElement(element);
+                return false;
             }
         });
 
-
-        PsiElement[] psiElements8 = new PsiElement[psiElements2.size()];
-        psiElements2.toArray(psiElements8);
-
-        for (PsiElement p : psiElements8) {
+        for (PsiElement p : result) {
             dor(p, prefix);
         }
-
 
     }
 
 
     public final void renameClass(String prefix) {
-
         @Nullable PsiElement startRoot = findSelectedPsiElement();
         if (startRoot == null) {
             PlugUtil.showMsg("startRoot is null", project);
             return;
         }
+        List<PsiElement> result = new ArrayList<>();
 
-        List<PsiElement> psiElements2 = new ArrayList<>();
-
-        startRoot.accept(new PsiRecursiveElementWalkingVisitor() {
+        findMatchedChildrenInDirOnly(startRoot, result, new ConditionPredicate() {
             @Override
-            public void visitElement(@NotNull PsiElement element) {
-
+            public boolean isMatch(PsiElement element) {
                 if (element.getClass().getName().equals("org.jetbrains.kotlin.psi.KtFile") ||
                         element.getClass().getName().equals("org.jetbrains.kotlin.psi.KtClass") ||
                         element.getClass().getName().equals("com.intellij.psi.impl.source.PsiClassImpl")) {
 
-                    PlugUtil.showMsg(element.getClass().getName(), project);
-
-                    psiElements2.add(element);
+                    return true;
                 }
 
-                super.visitElement(element);
+                return false;
             }
         });
 
-
-        PsiElement[] psiElements8 = new PsiElement[psiElements2.size()];
-        psiElements2.toArray(psiElements8);
-
-        for (PsiElement p : psiElements8) {
+        for (PsiElement p : result) {
             dor(p, prefix);
         }
 
@@ -317,7 +225,7 @@ public class AddPrefixToBatchFile extends AnAction {
 
     private void dor(PsiElement element, String prefix) {
         String oldName = null;
-        boolean isSearchTextOccurrences=false;
+        boolean isSearchTextOccurrences = false;
 
         if (element.getClass().getName().equals("com.intellij.psi.impl.source.PsiClassImpl")) {
             oldName = getPsiClassImplName(element);
@@ -325,18 +233,23 @@ public class AddPrefixToBatchFile extends AnAction {
             oldName = ((org.jetbrains.kotlin.psi.KtFile) element).getName();
         } else if (element.getClass().getName().equals("org.jetbrains.kotlin.psi.KtClass")) {
             oldName = ((org.jetbrains.kotlin.psi.KtClass) element).getName();
-        }else if (element.getClass().getName().equals("com.intellij.psi.impl.source.xml.XmlFileImpl")) {
+        } else if (element.getClass().getName().equals("com.intellij.psi.impl.source.xml.XmlFileImpl")) {
             oldName = ((XmlFileImpl) element).getName();
-        }else if (element.getClass().getName().equals("com.intellij.psi.impl.file.PsiBinaryFileImpl")) {
+        } else if (element.getClass().getName().equals("com.intellij.psi.impl.file.PsiBinaryFileImpl")) {
             oldName = ((PsiBinaryFileImpl) element).getName();
-            oldName=oldName.split("\\.")[0];
-        }else if (element.getClass().getName().equals("com.intellij.json.psi.impl.JsonFileImpl")) {
+           // oldName = oldName.split("\\.")[0];
+        } else if (element.getClass().getName().equals("com.intellij.json.psi.impl.JsonFileImpl")) {
             oldName = ((JsonFileImpl) element).getName();
+        } else if (element instanceof XmlAttributeValue) {
+            oldName = ((XmlAttributeValue) element).getValue();
+            isSearchTextOccurrences = true;
         }
 
-        PlugUtil.showMsg("oldName:"+oldName,project);
+        oldName = oldName.split("\\.")[0];
 
-        if (oldName == null) {
+        PlugUtil.showMsg("oldName:" + oldName, project);
+
+        if (oldName == null || oldName.startsWith("AndroidManifest")) {
             return;
         }
 
@@ -381,16 +294,17 @@ public class AddPrefixToBatchFile extends AnAction {
     }
 
 
-    private static ArrayList<XmlAttributeValue> getResNameFromLayout(final PsiFile file, final ArrayList<XmlAttributeValue> elements) {
-
+    private static List<PsiElement> getResNameFromLayout(final PsiElement file) {
         XmlDocument doc = (XmlDocument) file.getFirstChild();
         if (doc == null) {
-            return elements;
+            return null;
         }
         XmlTag root = doc.getRootTag();
         if (root == null || !root.getName().equals("resources")) {//do not handle other layout.
-            return elements;
+            return null;
         }
+
+        List<PsiElement> elements = new ArrayList<>();
 
         file.accept(new XmlRecursiveElementVisitor() {
 
@@ -423,11 +337,7 @@ public class AddPrefixToBatchFile extends AnAction {
                         return;
                     }
 
-                    System.err.println(name);
-
                     elements.add(nameAttr.getValueElement());
-
-
                 } finally {
                     super.visitElement(element);
                 }
