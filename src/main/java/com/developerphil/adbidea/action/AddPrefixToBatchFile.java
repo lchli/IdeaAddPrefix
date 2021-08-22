@@ -3,7 +3,6 @@ package com.developerphil.adbidea.action;
 import com.intellij.json.psi.impl.JsonFileImpl;
 import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiDirectory;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.XmlRecursiveElementVisitor;
@@ -14,18 +13,19 @@ import com.intellij.psi.xml.XmlAttribute;
 import com.intellij.psi.xml.XmlAttributeValue;
 import com.intellij.psi.xml.XmlDocument;
 import com.intellij.psi.xml.XmlTag;
+import com.intellij.refactoring.actions.BaseRefactoringAction;
 import com.intellij.refactoring.rename.RenameProcessor;
 import com.intellij.usageView.UsageInfo;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.io.IOException;
-import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 
 /**
@@ -83,19 +83,21 @@ public class AddPrefixToBatchFile extends AnAction {
 
     @Nullable
     private PsiElement findSelectedPsiElement() {
-        PsiElement[] psiElements = LangDataKeys.PSI_ELEMENT_ARRAY.getData(context);
-        if (psiElements == null || psiElements.length == 0) {
-            PsiElement element = CommonDataKeys.PSI_ELEMENT.getData(context);
-            if (element != null) {
-                psiElements = new PsiElement[]{element};
-            }
-        }
-
+//        PsiElement[] psiElements = LangDataKeys.PSI_ELEMENT_ARRAY.getData(context);
+//        if (psiElements == null || psiElements.length == 0) {
+//            PsiElement element = CommonDataKeys.PSI_ELEMENT.getData(context);
+//            if (element != null) {
+//                psiElements = new PsiElement[]{element};
+//            }
+//        }
+//
+        PsiElement[] psiElements = BaseRefactoringAction.getPsiElementArray(context);
         if (psiElements == null || psiElements.length <= 0) {
             return null;
         }
 
         return psiElements[0];
+
     }
 
     private interface ConditionPredicate {
@@ -106,17 +108,57 @@ public class AddPrefixToBatchFile extends AnAction {
         if (startRoot == null || result == null) {
             return;
         }
+
+        if (condition.isMatch(startRoot)) {
+            result.add(startRoot);
+        }
+
         PsiElement[] children = startRoot.getChildren();
         if (children == null || children.length <= 0) {
+            PlugUtil.showMsg("children is null:" + startRoot, project);
             return;
         }
         for (PsiElement e : children) {
-            if (condition.isMatch(e)) {
-                result.add(e);
-            }
-
             if (e instanceof PsiDirectory) {
                 findMatchedChildrenInDirOnly(e, result, condition);
+            } else {
+                if (condition.isMatch(e)) {
+                    result.add(e);
+                }
+            }
+        }
+    }
+
+
+    private void findJavaKotlin(PsiElement startRoot, Map<String,PsiElement> result, ConditionPredicate condition) {
+        if (startRoot == null || result == null) {
+            return;
+        }
+
+        if (condition.isMatch(startRoot)) {
+           String name=getOldName(startRoot);
+           if(name!=null) {
+               result.put(name,startRoot);
+           }
+        }
+
+        PsiElement[] children = startRoot.getChildren();
+        if (children == null || children.length <= 0) {
+            PlugUtil.showMsg("children is null:" + startRoot, project);
+            return;
+        }
+        for (PsiElement e : children) {
+            if (e instanceof PsiDirectory ||isDir(e)||
+                    isJavaClass(e)||isJavaFile(e)||
+            isKtClass(e)||isKtFile(e)) {
+                findJavaKotlin(e, result, condition);
+            } else {
+                if (condition.isMatch(e)) {
+                    String name=getOldName(e);
+                    if(name!=null) {
+                        result.put(name,e);
+                    }
+                }
             }
         }
     }
@@ -196,39 +238,64 @@ public class AddPrefixToBatchFile extends AnAction {
 
     public final void renameClass(String prefix) {
         @Nullable PsiElement startRoot = findSelectedPsiElement();
+        PlugUtil.showMsg("startRoot:" + startRoot, project);
+
         if (startRoot == null) {
-            PlugUtil.showMsg("startRoot is null", project);
             return;
         }
-        List<PsiElement> result = new ArrayList<>();
 
-        findMatchedChildrenInDirOnly(startRoot, result, new ConditionPredicate() {
+        Map<String,PsiElement> result = new HashMap<>();
+        findJavaKotlin(startRoot, result, new ConditionPredicate() {
             @Override
             public boolean isMatch(PsiElement element) {
-                if (element.getClass().getName().equals("org.jetbrains.kotlin.psi.KtFile") ||
-                        element.getClass().getName().equals("org.jetbrains.kotlin.psi.KtClass") ||
-                        element.getClass().getName().equals("com.intellij.psi.impl.source.PsiClassImpl")) {
+                PlugUtil.showMsg("element:" + element+"@"+element.getClass().getName(), project);
 
-                    return true;
-                }
-
-                return false;
+                return isKtClass(element)|| isJavaClass(element)||isKtFile(element);
             }
         });
 
-        for (PsiElement p : result) {
+        for (PsiElement p : result.values()) {
             dor(p, prefix);
         }
 
 
     }
 
-    private void dor(PsiElement element, String prefix) {
+    private boolean isDir(PsiElement element){
+        return element.getClass().getName().equals("com.intellij.psi.impl.file.PsiJavaDirectoryImpl");
+    }
+
+    private boolean isKtFile(PsiElement element){
+        return element.getClass().getName().equals("org.jetbrains.kotlin.psi.KtFile");
+    }
+    private boolean isKtClass(PsiElement element){
+        return element.getClass().getName().equals("org.jetbrains.kotlin.psi.KtClass");
+    }
+
+    private boolean isJavaFile(PsiElement element){
+        return element.getClass().getName().equals("com.intellij.psi.impl.source.PsiJavaFileImpl");
+    }
+
+    private boolean isJavaClass(PsiElement element){
+        return element.getClass().getName().equals("com.intellij.psi.impl.source.PsiClassImpl");
+    }
+
+    private Class findCls(String classname){
+        try {
+           return Class.forName(classname);
+        }catch (Throwable e){
+            PlugUtil.showMsg(getStack(e),project);
+            return null;
+        }
+    }
+
+    private String getOldName(PsiElement element){
         String oldName = null;
-        boolean isSearchTextOccurrences = false;
 
         if (element.getClass().getName().equals("com.intellij.psi.impl.source.PsiClassImpl")) {
-            oldName = getPsiClassImplName(element);
+            oldName = getPsiClassImplName(element,element.getClass());
+        } else if (element.getClass().getName().equals("com.intellij.psi.impl.source.PsiJavaFileImpl")) {
+            oldName = getPsiClassImplName(element,findCls("com.intellij.psi.impl.source.PsiFileImpl"));
         } else if (element.getClass().getName().equals("org.jetbrains.kotlin.psi.KtFile")) {
             oldName = ((org.jetbrains.kotlin.psi.KtFile) element).getName();
         } else if (element.getClass().getName().equals("org.jetbrains.kotlin.psi.KtClass")) {
@@ -237,7 +304,41 @@ public class AddPrefixToBatchFile extends AnAction {
             oldName = ((XmlFileImpl) element).getName();
         } else if (element.getClass().getName().equals("com.intellij.psi.impl.file.PsiBinaryFileImpl")) {
             oldName = ((PsiBinaryFileImpl) element).getName();
-           // oldName = oldName.split("\\.")[0];
+        } else if (element.getClass().getName().equals("com.intellij.json.psi.impl.JsonFileImpl")) {
+            oldName = ((JsonFileImpl) element).getName();
+        } else if (element instanceof XmlAttributeValue) {
+            oldName = ((XmlAttributeValue) element).getValue();
+        }
+
+        if (oldName == null) {
+            return null;
+        }
+
+        int index=oldName.indexOf(".");
+        if (index>=0) {
+            oldName = oldName.substring(0,index);
+        }
+       // PlugUtil.showMsg("oldName:" + oldName, project);
+
+        return oldName;
+    }
+
+    private void dor(PsiElement element, String prefix) {
+        String oldName = null;
+        boolean isSearchTextOccurrences = false;
+
+        if (element.getClass().getName().equals("com.intellij.psi.impl.source.PsiClassImpl")) {
+            oldName = getPsiClassImplName(element,element.getClass());
+        } else if (element.getClass().getName().equals("com.intellij.psi.impl.source.PsiJavaFileImpl")) {
+            oldName = getPsiClassImplName(element,findCls("com.intellij.psi.impl.source.PsiFileImpl"));
+        } else if (element.getClass().getName().equals("org.jetbrains.kotlin.psi.KtFile")) {
+            oldName = ((org.jetbrains.kotlin.psi.KtFile) element).getName();
+        } else if (element.getClass().getName().equals("org.jetbrains.kotlin.psi.KtClass")) {
+            oldName = ((org.jetbrains.kotlin.psi.KtClass) element).getName();
+        } else if (element.getClass().getName().equals("com.intellij.psi.impl.source.xml.XmlFileImpl")) {
+            oldName = ((XmlFileImpl) element).getName();
+        } else if (element.getClass().getName().equals("com.intellij.psi.impl.file.PsiBinaryFileImpl")) {
+            oldName = ((PsiBinaryFileImpl) element).getName();
         } else if (element.getClass().getName().equals("com.intellij.json.psi.impl.JsonFileImpl")) {
             oldName = ((JsonFileImpl) element).getName();
         } else if (element instanceof XmlAttributeValue) {
@@ -245,11 +346,23 @@ public class AddPrefixToBatchFile extends AnAction {
             isSearchTextOccurrences = true;
         }
 
-        oldName = oldName.split("\\.")[0];
+        if (oldName == null) {
+            return;
+        }
 
+        if(!oldName.endsWith(".kt")) {
+            int index = oldName.indexOf(".");
+            if (index >= 0) {
+                oldName = oldName.substring(0, index);
+            }
+        }
         PlugUtil.showMsg("oldName:" + oldName, project);
 
-        if (oldName == null || oldName.startsWith("AndroidManifest")) {
+        if (oldName.startsWith("AndroidManifest")) {
+            return;
+        }
+
+        if (oldName.startsWith(prefix)) {
             return;
         }
 
@@ -268,9 +381,9 @@ public class AddPrefixToBatchFile extends AnAction {
         processor.run();
     }
 
-    private String getPsiClassImplName(PsiElement element) {
+    private String getPsiClassImplName(PsiElement element,Class clazz) {
         try {
-            Method getNameMethod = element.getClass().getDeclaredMethod("getName");
+            Method getNameMethod = clazz.getDeclaredMethod("getName");
             getNameMethod.setAccessible(true);
             return getNameMethod.invoke(element).toString();
 
