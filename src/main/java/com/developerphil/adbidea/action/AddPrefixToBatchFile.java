@@ -167,8 +167,10 @@ public class AddPrefixToBatchFile extends AnAction {
     public final void renameXmlContent(String prefix) {
 
         @Nullable PsiElement startRoot = findSelectedPsiElement();
+        PlugUtil.showMsg("startRoot:" + startRoot, project);
+
         if (startRoot == null) {
-            PlugUtil.showMsg("startRoot is null", project);
+            showStartRootNullMsg();
             return;
         }
         List<PsiElement> result = new ArrayList<>();
@@ -205,12 +207,17 @@ public class AddPrefixToBatchFile extends AnAction {
         }
     }
 
+    private void showStartRootNullMsg(){
+        PlugUtil.showMsg("请选择要重构的目录", project,true);
+
+    }
 
     public final void renameResFile(String prefix) {
 
         @Nullable PsiElement startRoot = findSelectedPsiElement();
+        PlugUtil.showMsg("startRoot:" + startRoot, project);
         if (startRoot == null) {
-            PlugUtil.showMsg("startRoot is null", project);
+            showStartRootNullMsg();
             return;
         }
         List<PsiElement> result = new ArrayList<>();
@@ -241,6 +248,7 @@ public class AddPrefixToBatchFile extends AnAction {
         PlugUtil.showMsg("startRoot:" + startRoot, project);
 
         if (startRoot == null) {
+            showStartRootNullMsg();
             return;
         }
 
@@ -365,6 +373,8 @@ public class AddPrefixToBatchFile extends AnAction {
         if (oldName.startsWith(prefix)) {
             return;
         }
+
+        PlugUtil.showMsg("run processor:" + oldName, project);
 
         RenameProcessor processor = new RenameProcessor(project, element, prefix + oldName, GlobalSearchScope.projectScope(project), false, isSearchTextOccurrences) {
             @Override
