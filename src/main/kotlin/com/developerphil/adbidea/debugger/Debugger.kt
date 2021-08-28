@@ -84,7 +84,7 @@ class AttachToClient(private val androidDebugger: AndroidDebugger<*>,
                      private val project: Project,
                      private val client: Client) : BackwardCompatibleGetter<Unit>() {
     override fun getCurrentImplementation() {
-        androidDebugger.attachToClient(project, client, null)
+        androidDebugger.attachToClient(project, client,null)
     }
 
     override fun getPreviousImplementation() {

@@ -1,8 +1,10 @@
 package com.developerphil.adbidea.action;
 
+import com.android.tools.pixelprobe.TextInfo;
 import com.intellij.find.FindBundle;
 import com.intellij.find.FindManager;
 import com.intellij.find.FindModel;
+import com.intellij.find.FindResult;
 import com.intellij.find.actions.FindInPathAction;
 import com.intellij.find.actions.ReplaceInPathAction;
 import com.intellij.find.impl.FindInProjectUtil;
@@ -12,18 +14,22 @@ import com.intellij.ide.DataManager;
 import com.intellij.json.psi.impl.JsonFileImpl;
 import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.application.WriteAction;
 import com.intellij.openapi.application.impl.ApplicationImpl;
 import com.intellij.openapi.command.CommandProcessor;
+import com.intellij.openapi.command.WriteCommandAction;
+import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.util.Factory;
+import com.intellij.openapi.util.Ref;
 import com.intellij.openapi.util.text.StringUtil;
+import com.intellij.openapi.vfs.ReadonlyStatusHandler;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.wm.IdeFocusManager;
-import com.intellij.psi.PsiDirectory;
-import com.intellij.psi.PsiElement;
-import com.intellij.psi.XmlRecursiveElementVisitor;
+import com.intellij.psi.*;
 import com.intellij.psi.impl.file.PsiBinaryFileImpl;
 import com.intellij.psi.impl.source.xml.XmlFileImpl;
 import com.intellij.psi.search.GlobalSearchScope;
@@ -40,6 +46,7 @@ import com.intellij.usages.*;
 import com.intellij.usages.impl.UsageViewImpl;
 import com.intellij.usages.rules.UsageInFile;
 import com.intellij.util.AdapterProcessor;
+import com.intellij.util.ThrowableRunnable;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.kotlin.com.intellij.psi.util.PsiUtil;
@@ -257,43 +264,72 @@ public class AddPrefixToBatchFile extends AnAction {
             }
         });
 
-        for (PsiElement xmlFile : result) {
-            String oldName = getOldName(xmlFile);
-            PlugUtil.showMsg("binding xmlFile:" + oldName, project);
-            if (oldName == null) {
-                continue;
-            }
-            if (!oldName.startsWith(xmlPrefix)) {
-                continue;
-            }
-            oldName = oldName.substring(xmlPrefix.length());
-            String[] arr = oldName.split("_");
-            if (arr == null || arr.length <= 0) {
-                continue;
-            }
-            String bindingName = "";
-            for (String part : arr) {
-                bindingName += upperFistChar(part);
-            }
-            bindingName += "Binding";
-            PlugUtil.showMsg("binding name:" + bindingName, project);
-
-            String[] prefixarr = xmlPrefix.split("_");
-            if (prefixarr == null || prefixarr.length <= 0) {
-                continue;
-            }
-            String prefix=upperFistChar(prefixarr[0]);
-            String newBindingName=prefix+bindingName;
-            PlugUtil.showMsg("newBindingName name:" + newBindingName, project);
-
-            replaceStringUse(bindingName,newBindingName);
+        if(result.isEmpty()){
+            return;
         }
+
+//        for (PsiElement xmlFile :result){
+//            doBinding(xmlFile,xmlPrefix);
+//        }
+
+        doBinding(result.remove(0), xmlPrefix, new Runnable() {
+            @Override
+            public void run() {
+                final Runnable outer=this;
+                ApplicationManager.getApplication().invokeLater(new Runnable() {
+                    @Override
+                    public void run() {
+                        if(!result.isEmpty()){
+                            PlugUtil.showMsg("run===",project);
+                            doBinding(result.remove(0),xmlPrefix,outer);
+                        }
+                    }
+                });
+
+            }
+        });
 
 
 
     }
 
-    private void replaceStringUse(String beReplace,String newVal){
+    private void doBinding(PsiElement xmlFile,String xmlPrefix,Runnable runnable){
+        String oldName = getOldName(xmlFile);
+        // PlugUtil.showMsg("binding xmlFile:" + oldName, project);
+        if (oldName == null) {
+            runnable.run();
+            return;
+        }
+        if (!oldName.startsWith(xmlPrefix)) {
+            runnable.run();
+            return;
+        }
+        oldName = oldName.substring(xmlPrefix.length());
+        String[] arr = oldName.split("_");
+        if (arr == null || arr.length <= 0) {
+            runnable.run();
+            return;
+        }
+        String bindingName = "";
+        for (String part : arr) {
+            bindingName += upperFistChar(part);
+        }
+        bindingName += "Binding";
+        PlugUtil.showMsg("binding name:" + bindingName, project);
+
+        String[] prefixarr = xmlPrefix.split("_");
+        if (prefixarr == null || prefixarr.length <= 0) {
+            runnable.run();
+            return;
+        }
+        String prefix=upperFistChar(prefixarr[0]);
+        String newBindingName=prefix+bindingName;
+        PlugUtil.showMsg("newBindingName name:" + newBindingName, project);
+
+        replaceStringUse(bindingName, newBindingName, runnable);
+    }
+
+    private void replaceStringUse(String beReplace,String newVal,Runnable runnable){
         FindManager findManager = FindManager.getInstance(this.project);
 
         FindModel findModel;
@@ -303,10 +339,10 @@ public class AddPrefixToBatchFile extends AnAction {
         findModel.setStringToFind(beReplace);
         findModel.setStringToReplace(newVal);
 
-        replaceInPath(findModel);
+        replaceInPath(findModel,runnable);
     }
 
-    public void replaceInPath(@NotNull FindModel findModel) {
+    public void replaceInPath(@NotNull FindModel findModel,Runnable runnable) {
         FindManager findManager = FindManager.getInstance(project);
         if (findModel.isProjectScope() || FindInProjectUtil.getDirectory(findModel) != null || findModel.getModuleName() != null || findModel.getCustomScope() != null) {
             UsageViewManager manager = UsageViewManager.getInstance(this.project);
@@ -317,12 +353,15 @@ public class AddPrefixToBatchFile extends AnAction {
                 FindUsagesProcessPresentation processPresentation = FindInProjectUtil.setupProcessPresentation(this.project, true, presentation);
                 processPresentation.setShowFindOptionsPrompt(findModel.isPromptOnReplace());
                 UsageSearcherFactory factory = new UsageSearcherFactory(findModelCopy, processPresentation);
-                this.searchAndShowUsages(manager, factory, findModelCopy, presentation, processPresentation);
+                this.searchAndShowUsages(manager, factory, findModelCopy, presentation, processPresentation,runnable);
             }
+        }else{
+            runnable.run();
         }
     }
 
-    public void searchAndShowUsages(@NotNull final UsageViewManager manager, @NotNull final Factory<UsageSearcher> usageSearcherFactory, @NotNull final FindModel findModelCopy, @NotNull final UsageViewPresentation presentation, @NotNull final FindUsagesProcessPresentation processPresentation) {
+    public void searchAndShowUsages(@NotNull final UsageViewManager manager, @NotNull final Factory<UsageSearcher> usageSearcherFactory, @NotNull final FindModel findModelCopy, @NotNull final UsageViewPresentation presentation, @NotNull final FindUsagesProcessPresentation processPresentation,
+                                    Runnable runnable) {
         presentation.setMergeDupLinesAvailable(false);
         ReplaceInProjectTarget target = new ReplaceInProjectTarget(this.project, findModelCopy);
         ((FindManagerImpl)FindManager.getInstance(this.project)).getFindUsagesManager().addToHistory(target);
@@ -330,83 +369,243 @@ public class AddPrefixToBatchFile extends AnAction {
         manager.searchAndShowUsages(new UsageTarget[]{target}, usageSearcherFactory, processPresentation, presentation, new UsageViewManager.UsageViewStateListener() {
             public void usageViewCreated(@NotNull UsageView usageView) {
                 context[0] = new ReplaceContext(usageView, findModelCopy);
-                findingUsagesFinished(usageView);
+                //findingUsagesFinished(usageView);
             }
 
             public void findingUsagesFinished(UsageView usageView) {
                 if (context[0] != null) {
+                    PlugUtil.showMsg("findingUsagesFinished",project);
                     ApplicationManager.getApplication().invokeLater(() -> {
-                        replaceUsagesUnderCommand(context[0], usageView.getUsages());
-                        context[0].invalidateExcludedSetCache();
+                        try {
+                            replaceUsagesUnderCommand(context[0], usageView.getUsages(), runnable);
+                            context[0].invalidateExcludedSetCache();
+                        }catch (Throwable e){
+                            PlugUtil.showMsg(getStack(e),project);
+                            runnable.run();
+                        }
                     }, project.getDisposed());
+
+//                    replaceUsagesUnderCommand(context[0], usageView.getUsages(), runnable);
+//                    context[0].invalidateExcludedSetCache();
+                }else{
+                    runnable.run();
                 }
 
             }
         });
     }
 
-    private void replaceUsagesUnderCommand(@NotNull ReplaceContext replaceContext, @NotNull Set<? extends Usage> usagesSet) {
+    private void replaceUsagesUnderCommand(@NotNull ReplaceContext replaceContext, @NotNull Set<? extends Usage> usagesSet,
+                                           Runnable runnable) throws Throwable {
+
+        PlugUtil.showMsg("replaceUsagesUnderCommand",project);
+
         if (!usagesSet.isEmpty()) {
+            PlugUtil.showMsg("replaceUsagesUnderCommand1",project);
             List<Usage> usages = new ArrayList(usagesSet);
             Collections.sort(usages, UsageViewImpl.USAGE_COMPARATOR);
-           // if (this.ensureUsagesWritable(replaceContext, usages)) {
-                CommandProcessor.getInstance().executeCommand(this.project, () -> {
-                    boolean success = this.replaceUsages(replaceContext, usages);
-                    UsageView usageView = replaceContext.getUsageView();
+            if (this.ensureUsagesWritable(replaceContext, usages)) {
+//                CommandProcessor.getInstance().executeCommand(this.project, () -> {
+//                    boolean success = this.replaceUsages(replaceContext, usages);
+//                    UsageView usageView = replaceContext.getUsageView();
+//
+//                }, FindBundle.message("find.replace.command", new Object[0]), (Object)null);
 
-                }, FindBundle.message("find.replace.command", new Object[0]), (Object)null);
-
+                PlugUtil.showMsg("replaceUsagesUnderCommand2",project);
+            boolean success = this.replaceUsages(replaceContext, usages,runnable);
+            UsageView usageView = replaceContext.getUsageView();
                 replaceContext.invalidateExcludedSetCache();
-           // }
+            }else{
+                runnable.run();
+            }
+        }else{
+            PlugUtil.showMsg("replaceUsagesUnderCommand usagesSet.isEmpty",project);
+            runnable.run();
         }
     }
 
-    private boolean replaceUsages(@NotNull ReplaceContext replaceContext, @NotNull Collection<? extends Usage> usages) {
+    private boolean ensureUsagesWritable(ReplaceContext replaceContext, Collection<? extends Usage> selectedUsages) {
+        Set<VirtualFile> readOnlyFiles = null;
+        Iterator var4 = selectedUsages.iterator();
 
+        while(var4.hasNext()) {
+            Usage usage = (Usage)var4.next();
+            VirtualFile file = ((UsageInFile)usage).getFile();
+            if (file != null && !file.isWritable()) {
+                if (readOnlyFiles == null) {
+                    readOnlyFiles = new HashSet();
+                }
+
+                readOnlyFiles.add(file);
+            }
+        }
+
+        if (readOnlyFiles != null) {
+            ReadonlyStatusHandler.getInstance(this.project).ensureFilesWritable(readOnlyFiles);
+        }
+
+        if (hasReadOnlyUsages(selectedUsages)) {
+            int result = Messages.showOkCancelDialog(replaceContext.getUsageView().getComponent(), FindBundle.message("find.replace.occurrences.in.read.only.files.prompt", new Object[0]), FindBundle.message("find.replace.occurrences.in.read.only.files.title", new Object[0]), Messages.getWarningIcon());
+            if (result != 0) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static boolean hasReadOnlyUsages(Collection<? extends Usage> usages) {
+        Iterator var1 = usages.iterator();
+
+        Usage usage;
+        do {
+            if (!var1.hasNext()) {
+                return false;
+            }
+
+            usage = (Usage)var1.next();
+        } while(!usage.isReadOnly());
+
+        return true;
+    }
+
+    private boolean replaceUsages(@NotNull ReplaceContext replaceContext, @NotNull Collection<? extends Usage> usages, Runnable runnable) throws Throwable {
+        if (!ensureUsagesWritable(replaceContext, usages)) {
+            PlugUtil.showMsg("replaceUsages",project);
+            runnable.run();
+            return true;
+        }
+        PlugUtil.showMsg("replaceUsages1",project);
         int[] replacedCount = {0};
         boolean[] success = {true};
-        boolean result = ((ApplicationImpl)ApplicationManager.getApplication()).runWriteActionWithCancellableProgressInDispatchThread(
-                "msg",
-                project,
-                null,
-                indicator -> {
-                    indicator.setIndeterminate(false);
-                    int processed = 0;
-                    VirtualFile lastFile = null;
+        WriteCommandAction.writeCommandAction(project).run(new ThrowableRunnable<Throwable>() {
+            @Override
+            public void run() throws Throwable {
 
-                    for (final Usage usage : usages) {
-                        ++processed;
-                        indicator.checkCanceled();
-                        indicator.setFraction((float)processed / usages.size());
+//        ((ApplicationImpl)ApplicationManager.getApplication()).runWriteAction(
+//             new Runnable() {
+//                 @Override
+//                 public void run() {
 
-                        if (usage instanceof UsageInFile) {
-                            VirtualFile virtualFile = ((UsageInFile)usage).getFile();
-                            if (virtualFile != null && !virtualFile.equals(lastFile)) {
-                                indicator.setText2(virtualFile.getPresentableUrl());
-                                lastFile = virtualFile;
-                            }
-                        }
+                     PlugUtil.showMsg("replaceUsages2", project);
+                    // indicator.setIndeterminate(false);
+                     int processed = 0;
+                     VirtualFile lastFile = null;
 
-                        ProgressManager.getInstance().executeNonCancelableSection(() -> {
-                            try {
-                                if ( ReplaceInProjectManager.getInstance(project).replaceUsage(usage, replaceContext.getFindModel(), replaceContext.getExcludedSetCached(), false)) {
-                                    replacedCount[0]++;
-                                }
-                            }
-                            catch (FindManager.MalformedReplacementStringException ex) {
-                                markAsMalformedReplacement(replaceContext, usage);
-                                success[0] = false;
-                            }
-                        });
-                    }
-                    FileDocumentManager.getInstance().saveAllDocuments();
-                }
-        );
-        success[0] &= result;
+                     for (final Usage usage : usages) {
+                         ++processed;
+                        // indicator.checkCanceled();
+                         //indicator.setFraction((float) processed / usages.size());
+
+                         if (usage instanceof UsageInFile) {
+                             VirtualFile virtualFile = ((UsageInFile) usage).getFile();
+                             if (virtualFile != null && !virtualFile.equals(lastFile)) {
+                                // indicator.setText2(virtualFile.getPresentableUrl());
+                                 lastFile = virtualFile;
+                             }
+                         }
+
+                         ProgressManager.getInstance().executeNonCancelableSection(() -> {
+                             try {
+                                 PlugUtil.showMsg("replaceUsages3", project);
+                                 if (replaceUsage(usage, replaceContext.getFindModel(), new HashSet<>())) {
+                                     replacedCount[0]++;
+                                     PlugUtil.showMsg("replaceUsages4", project);
+                                 }
+                             } catch (Throwable ex) {
+                                 PlugUtil.showMsg(getStack(ex),project);
+                                 markAsMalformedReplacement(replaceContext, usage);
+                                 success[0] = false;
+                             }
+                         });
+                     }
+
+                     FileDocumentManager.getInstance().saveAllDocuments();
+//                 }
+//             }
+       // );
+       // success[0] &= result;
         replaceContext.getUsageView().removeUsagesBulk(usages);
-        //reportNumberReplacedOccurrences(myProject, replacedCount[0]);
+
+                runnable.run();
+
+            }
+        });
+       // reportNumberReplacedOccurrences(myProject, replacedCount[0]);
         return success[0];
     }
+
+
+    public boolean replaceUsage(@NotNull Usage usage, @NotNull FindModel findModel, @NotNull Set<Usage> excludedSet) throws FindManager.MalformedReplacementStringException {
+
+        PlugUtil.showMsg("replaceUsage=====1",project);
+
+        if (excludedSet.contains(usage)) {
+            PlugUtil.showMsg("replaceUsages=====9",project);
+            return false;
+        } else {
+            Document document = ((UsageInfo2UsageAdapter)usage).getDocument();
+            PlugUtil.showMsg("document.isWritable():"+document.isWritable() ,project);
+            return !document.isWritable() ? false : ((UsageInfo2UsageAdapter)usage).processRangeMarkers((segment) -> {
+                int textOffset = segment.getStartOffset();
+                int textEndOffset = segment.getEndOffset();
+                Ref stringToReplace = Ref.create();
+
+                try {
+                    PlugUtil.showMsg("replaceUsages=====99",project);
+                    if (!getStringToReplace(textOffset, textEndOffset, document, findModel, stringToReplace)) {
+                        PlugUtil.showMsg("replaceUsages=====99a",project);
+                        return true;
+                    } else {
+                        PlugUtil.showMsg("replaceUsages=====99b",project);
+                        if (!stringToReplace.isNull()) {
+                            PlugUtil.showMsg("replaceUsages=====99c:"+(CharSequence)stringToReplace.get(),project);
+                            document.replaceString(textOffset, textEndOffset, (CharSequence)stringToReplace.get());
+                        }
+
+                        return true;
+                    }
+                } catch (Throwable var10) {
+                    PlugUtil.showMsg(getStack(var10),project);
+                    PlugUtil.showMsg("replaceUsages=====999",project);
+                    return false;
+                }finally {
+
+                }
+            });
+        }
+
+//        if (!exceptionResult.isNull()) {
+//
+//            PlugUtil.showMsg(getStack(exceptionResult.get()),project);
+//            throw (FindManager.MalformedReplacementStringException)exceptionResult.get();
+//        } else {
+//            return true;
+//        }
+
+    }
+
+    private boolean getStringToReplace(int textOffset, int textEndOffset, Document document, FindModel findModel, Ref<? super String> stringToReplace) throws FindManager.MalformedReplacementStringException {
+        if (textOffset >= 0 && textOffset < document.getTextLength()) {
+            if (textEndOffset >= 0 && textEndOffset <= document.getTextLength()) {
+                FindManager findManager = FindManager.getInstance(this.project);
+                CharSequence foundString = document.getCharsSequence().subSequence(textOffset, textEndOffset);
+                PsiFile file = PsiDocumentManager.getInstance(this.project).getPsiFile(document);
+                FindResult findResult = findManager.findString(document.getCharsSequence(), textOffset, findModel, file != null ? file.getVirtualFile() : null);
+                if (findResult.isStringFound() && findResult.getStartOffset() >= textOffset && findResult.getEndOffset() <= textEndOffset) {
+                    stringToReplace.set(FindManager.getInstance(this.project).getStringToReplace(foundString.toString(), findModel, textOffset, document.getText()));
+                    return true;
+                } else {
+                    return false;
+                }
+            } else {
+                return false;
+            }
+        } else {
+            return false;
+        }
+    }
+
     private static void markAsMalformedReplacement(ReplaceContext replaceContext, Usage usage) {
         replaceContext.getUsageView().excludeUsages(new Usage[]{usage});
     }
