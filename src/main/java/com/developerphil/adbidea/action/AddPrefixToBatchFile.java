@@ -283,8 +283,10 @@ public class AddPrefixToBatchFile extends AnAction {
                 continue;
             }
             String prefix=upperFistChar(prefixarr[0]);
+            String newBindingName=prefix+bindingName;
+            PlugUtil.showMsg("newBindingName name:" + newBindingName, project);
 
-            replaceStringUse(bindingName,prefix+bindingName);
+            replaceStringUse(bindingName,newBindingName);
         }
 
 
