@@ -31,6 +31,8 @@ public class RefactoringDialog extends DialogWrapper {
     protected final Project myProject;
     private RefactorContentAction myRefactorContentAction;
     private Action mRefactorJavaKotlinClassAction;
+    private Action mRefactorActivityFragmentAction;
+    private Action mRefactorBindingAction;
 
     protected RefactoringDialog(@NotNull Project project, boolean canBeParent) {
         super(project, canBeParent);
@@ -62,6 +64,8 @@ public class RefactoringDialog extends DialogWrapper {
         myRefactorAction = new RefactorAction();
         myRefactorContentAction = new RefactorContentAction();
         mRefactorJavaKotlinClassAction = new RefactorJavaKotlinClassAction();
+        mRefactorActivityFragmentAction = new RefactorActivityFragmentAction();
+        mRefactorBindingAction = new RefactorBindingAction();
     }
 
 
@@ -71,6 +75,9 @@ public class RefactoringDialog extends DialogWrapper {
         void doRenameContent(String prefix);
 
         void doRenameClass(String prefix);
+
+        void doRenameActivityFragment(String prefix);
+        void doRenameBinding(String prefix);
     }
 
     private DoRenameListener mDoRenameListener;
@@ -111,6 +118,8 @@ public class RefactoringDialog extends DialogWrapper {
 
         actions.add(myRefactorContentAction);
         actions.add(mRefactorJavaKotlinClassAction);
+        actions.add(mRefactorActivityFragmentAction);
+        actions.add(mRefactorBindingAction);
 
         actions.add(getHelpAction());
 
@@ -168,6 +177,42 @@ public class RefactoringDialog extends DialogWrapper {
             }
             closeOKAction();
             mDoRenameListener.doRenameClass(editorTextField.getText());
+        }
+    }
+
+    private class RefactorActivityFragmentAction extends AbstractAction {
+
+        public RefactorActivityFragmentAction() {
+            putValue(Action.NAME, "renameActivityFragment");
+            putValue(DEFAULT_ACTION, Boolean.FALSE);
+        }
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            if (DumbService.isDumb(myProject)) {
+                Messages.showMessageDialog(myProject, "Refactoring is not available while indexing is in progress", "Indexing", null);
+                return;
+            }
+            closeOKAction();
+            mDoRenameListener.doRenameActivityFragment(editorTextField.getText());
+        }
+    }
+
+    private class RefactorBindingAction extends AbstractAction {
+
+        public RefactorBindingAction() {
+            putValue(Action.NAME, "renameBinding");
+            putValue(DEFAULT_ACTION, Boolean.FALSE);
+        }
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            if (DumbService.isDumb(myProject)) {
+                Messages.showMessageDialog(myProject, "Refactoring is not available while indexing is in progress", "Indexing", null);
+                return;
+            }
+            closeOKAction();
+            mDoRenameListener.doRenameBinding(editorTextField.getText());
         }
     }
 
