@@ -693,7 +693,7 @@ public class AddPrefixToBatchFile extends AnAction {
             oldName = ((JsonFileImpl) element).getName();
         } else if (element instanceof XmlAttributeValue) {
             oldName = ((XmlAttributeValue) element).getValue();
-            isSearchTextOccurrences = true;
+            //isSearchTextOccurrences = true;
         }
 
         if (oldName == null) {
