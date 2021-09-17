@@ -39,15 +39,16 @@ public class RefactoringDialog extends DialogWrapper {
         super(project, canBeParent);
         myProject = project;
         editorTextField = new EditorTextField("请输入prefix", myProject, null);
-        editorTextField.setMinimumSize(new Dimension(300, 100));
+        editorTextField.setMinimumSize(new Dimension(300, 50));
 
         editorTextFieldOldPrefix = new EditorTextField("请输入old prefix,没有则为空", myProject, null);
-        editorTextFieldOldPrefix.setMinimumSize(new Dimension(300, 100));
+        editorTextFieldOldPrefix.setMinimumSize(new Dimension(300, 50));
 
         jbPanel = new JPanel();
-        jbPanel.setLayout(new GridLayout(2, 1));
+        jbPanel.setLayout(new GridLayout(3, 1));
         jbPanel.setComponentOrientation(ComponentOrientation.LEFT_TO_RIGHT);
         jbPanel.add(editorTextField);
+        jbPanel.add(editorTextFieldOldPrefix);
 
         setTitle("给选中目录下所有资源添加前缀");
 
