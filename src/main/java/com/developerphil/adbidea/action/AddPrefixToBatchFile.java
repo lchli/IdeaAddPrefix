@@ -98,28 +98,28 @@ public class AddPrefixToBatchFile extends AnAction {
         RefactoringDialog dialog = new RefactoringDialog(project, false);
         dialog.setDoRenameListener(new RefactoringDialog.DoRenameListener() {
             @Override
-            public void doRenameActivityFragment(String prefix) {
-                renameFragmentAndActivity(prefix);
+            public void doRenameActivityFragment(String prefix,String oldPrefix) {
+                renameFragmentAndActivity(prefix,oldPrefix);
             }
 
             @Override
-            public void doRenameBinding(String prefix) {
-                renameXmlBinding(prefix);
+            public void doRenameBinding(String prefix,String oldPrefix) {
+                renameXmlBinding(prefix,oldPrefix);
             }
 
             @Override
-            public void doRenameClass(String prefix) {
-                renameClass(prefix,null);
+            public void doRenameClass(String prefix,String oldPrefix) {
+                renameClass(prefix,null,oldPrefix);
             }
 
             @Override
-            public void doRename(String prefix) {
-                renameResFile(prefix);
+            public void doRename(String prefix,String oldPrefix) {
+                renameResFile(prefix,oldPrefix);
             }
 
             @Override
-            public void doRenameContent(String prefix) {
-                renameXmlContent(prefix);
+            public void doRenameContent(String prefix,String oldPrefix) {
+                renameXmlContent(prefix,oldPrefix);
             }
         });
 
@@ -211,7 +211,7 @@ public class AddPrefixToBatchFile extends AnAction {
     }
 
 
-    public final void renameXmlContent(String prefix) {
+    public final void renameXmlContent(String prefix,String oldPrefix) {
 
         @Nullable PsiElement startRoot = findSelectedPsiElement();
         PlugUtil.showMsg("startRoot:" + startRoot, project);
@@ -235,12 +235,12 @@ public class AddPrefixToBatchFile extends AnAction {
         });
 
         for (PsiElement xmlFile : result) {
-            renameContent(xmlFile, prefix);
+            renameContent(xmlFile, prefix,oldPrefix);
         }
 
     }
 
-    public final void renameXmlBinding(String xmlPrefix) {
+    public final void renameXmlBinding(String xmlPrefix,String oldPrefix) {
 
         @Nullable PsiElement startRoot = findSelectedPsiElement();
         PlugUtil.showMsg("startRoot:" + startRoot, project);
@@ -281,19 +281,19 @@ public class AddPrefixToBatchFile extends AnAction {
                     public void run() {
                         if(!result.isEmpty()){
                             PlugUtil.showMsg("run===",project);
-                            doBinding(result.remove(0),xmlPrefix,outer);
+                            doBinding(result.remove(0),xmlPrefix,outer,oldPrefix);
                         }
                     }
                 });
 
             }
-        });
+        },oldPrefix);
 
 
 
     }
 
-    private void doBinding(PsiElement xmlFile,String xmlPrefix,Runnable runnable){
+    private void doBinding(PsiElement xmlFile,String xmlPrefix,Runnable runnable,String oldPrefix){
         String oldName = getOldName(xmlFile);
         // PlugUtil.showMsg("binding xmlFile:" + oldName, project);
         if (oldName == null) {
@@ -305,6 +305,9 @@ public class AddPrefixToBatchFile extends AnAction {
             return;
         }
         oldName = oldName.substring(xmlPrefix.length());
+        if(oldPrefix!=null&&oldPrefix.length()>0){
+            oldName= oldPrefix+oldName;
+        }
         String[] arr = oldName.split("_");
         if (arr == null || arr.length <= 0) {
             runnable.run();
@@ -712,7 +715,7 @@ public class AddPrefixToBatchFile extends AnAction {
         }
     }
 
-    private void renameContent(PsiElement xmlFile, String prefix) {
+    private void renameContent(PsiElement xmlFile, String prefix,String oldPrefix) {
         List<PsiElement> result = getResNameFromLayout(xmlFile);
         if (result == null || result.isEmpty()) {
             PlugUtil.showMsg("skip xml:" + xmlFile, project);
@@ -721,7 +724,7 @@ public class AddPrefixToBatchFile extends AnAction {
 
         for (PsiElement p : result) {
             //PlugUtil.showMsg(p.toString() + "@" + p.getClass().getName(), project);
-            dor(p, prefix);
+            dor(p, prefix,oldPrefix);
         }
     }
 
@@ -730,7 +733,7 @@ public class AddPrefixToBatchFile extends AnAction {
 
     }
 
-    public final void renameResFile(String prefix) {
+    public final void renameResFile(String prefix,String oldPrefix) {
 
         @Nullable PsiElement startRoot = findSelectedPsiElement();
         PlugUtil.showMsg("startRoot:" + startRoot, project);
@@ -755,13 +758,13 @@ public class AddPrefixToBatchFile extends AnAction {
         });
 
         for (PsiElement p : result) {
-            dor(p, prefix);
+            dor(p, prefix,oldPrefix);
         }
 
     }
 
 
-    public void renameFragmentAndActivity(String prefix) {
+    public void renameFragmentAndActivity(String prefix,String oldPrefix) {
         renameClass(prefix, new ConditionPredicate() {
             @Override
             public boolean isMatch(PsiElement element) {
@@ -773,10 +776,10 @@ public class AddPrefixToBatchFile extends AnAction {
 
                 return oldName.contains("Fragment") || oldName.contains("Activity");
             }
-        });
+        },oldPrefix);
     }
 
-    public void renameClass(String prefix, ConditionPredicate extraFilter) {
+    public void renameClass(String prefix, ConditionPredicate extraFilter,String oldPrefix) {
         @Nullable PsiElement startRoot = findSelectedPsiElement();
         PlugUtil.showMsg("startRoot:" + startRoot, project);
 
@@ -802,7 +805,7 @@ public class AddPrefixToBatchFile extends AnAction {
         });
 
         for (PsiElement p : result.values()) {
-            dor(p, prefix);
+            dor(p, prefix,oldPrefix);
         }
 
 
@@ -872,7 +875,7 @@ public class AddPrefixToBatchFile extends AnAction {
         return oldName;
     }
 
-    private void dor(PsiElement element, String prefix) {
+    private void dor(PsiElement element, String prefix,String oldPrefix) {
         String oldName = null;
         boolean isSearchTextOccurrences = false;
 
@@ -897,6 +900,10 @@ public class AddPrefixToBatchFile extends AnAction {
 
         if (oldName == null) {
             return;
+        }
+
+        if(oldPrefix!=null&&oldPrefix.length()>0&&oldName.startsWith(oldPrefix)){
+            oldName=oldName.substring(oldPrefix.length());//del old prefix.
         }
 
         if (!oldName.endsWith(".kt")) {

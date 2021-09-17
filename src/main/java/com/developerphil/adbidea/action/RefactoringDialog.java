@@ -26,6 +26,7 @@ public class RefactoringDialog extends DialogWrapper {
             "\n执行上面任一操作后需要rebuild一下才应该执行下一个操作，以确保引用的刷新。\n作者：李成航";
 
     private final EditorTextField editorTextField;
+    private final EditorTextField editorTextFieldOldPrefix;
     private final JPanel jbPanel;
     private Action myRefactorAction;
     protected final Project myProject;
@@ -39,6 +40,9 @@ public class RefactoringDialog extends DialogWrapper {
         myProject = project;
         editorTextField = new EditorTextField("请输入prefix", myProject, null);
         editorTextField.setMinimumSize(new Dimension(300, 100));
+
+        editorTextFieldOldPrefix = new EditorTextField("请输入old prefix,没有则为空", myProject, null);
+        editorTextFieldOldPrefix.setMinimumSize(new Dimension(300, 100));
 
         jbPanel = new JPanel();
         jbPanel.setLayout(new GridLayout(2, 1));
@@ -70,14 +74,15 @@ public class RefactoringDialog extends DialogWrapper {
 
 
     public interface DoRenameListener {
-        void doRename(String prefix);
+        void doRename(String prefix,String oldPrefix);
 
-        void doRenameContent(String prefix);
+        void doRenameContent(String prefix,String oldPrefix);
 
-        void doRenameClass(String prefix);
+        void doRenameClass(String prefix,String oldPrefix);
 
-        void doRenameActivityFragment(String prefix);
-        void doRenameBinding(String prefix);
+        void doRenameActivityFragment(String prefix,String oldPrefix);
+
+        void doRenameBinding(String prefix,String oldPrefix);
     }
 
     private DoRenameListener mDoRenameListener;
@@ -98,9 +103,9 @@ public class RefactoringDialog extends DialogWrapper {
             closeOKAction();
 
             if (isRenameContent) {
-                mDoRenameListener.doRenameContent(editorTextField.getText());
+                mDoRenameListener.doRenameContent(editorTextField.getText(),editorTextFieldOldPrefix.getText());
             } else {
-                mDoRenameListener.doRename(editorTextField.getText());
+                mDoRenameListener.doRename(editorTextField.getText(),editorTextFieldOldPrefix.getText());
             }
         }
     }
@@ -176,7 +181,7 @@ public class RefactoringDialog extends DialogWrapper {
                 return;
             }
             closeOKAction();
-            mDoRenameListener.doRenameClass(editorTextField.getText());
+            mDoRenameListener.doRenameClass(editorTextField.getText(),editorTextFieldOldPrefix.getText());
         }
     }
 
@@ -194,7 +199,7 @@ public class RefactoringDialog extends DialogWrapper {
                 return;
             }
             closeOKAction();
-            mDoRenameListener.doRenameActivityFragment(editorTextField.getText());
+            mDoRenameListener.doRenameActivityFragment(editorTextField.getText(),editorTextFieldOldPrefix.getText());
         }
     }
 
@@ -212,7 +217,7 @@ public class RefactoringDialog extends DialogWrapper {
                 return;
             }
             closeOKAction();
-            mDoRenameListener.doRenameBinding(editorTextField.getText());
+            mDoRenameListener.doRenameBinding(editorTextField.getText(),editorTextFieldOldPrefix.getText());
         }
     }
 
