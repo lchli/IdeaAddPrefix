@@ -1004,7 +1004,7 @@ public class AddPrefixToBatchFile extends AnAction {
                     XmlTag tag = (XmlTag) element;
                     String name = tag.getName();
 
-                    if (name.equals("declare-styleable") || name.equals("attr")) {
+                    if (name.equals("declare-styleable") || name.equals("attr")|| name.equals("style")) {
                         return;
                     }
 
