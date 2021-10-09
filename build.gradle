@@ -64,9 +64,28 @@ dependencies {
 
     compileOnly fileTree(dir: "$StudioCompilePath/plugins/android/lib", include: ['*.jar'])
     compileOnly fileTree(dir: "$StudioCompilePath/lib", include: ['*.jar'])
+    compileOnly fileTree(dir: "$StudioCompilePath/plugins/Kotlin/lib", include: ['*.jar'])
+    compileOnly fileTree(dir: "$StudioCompilePath/plugins/Kotlin/kotlinc/lib", include: ['*.jar'])
+    compileOnly fileTree(dir: "$StudioCompilePath/", include: ['*.jar'])
+    compileOnly fileTree(dir: "$StudioCompilePath/plugins/IntelliLang/lib", include: ['*.jar'])
+    compileOnly fileTree(dir: "$StudioCompilePath/plugins/platform-images/lib", include: ['*.jar'])
 
     compileOnly "org.jetbrains.kotlin:kotlin-compiler-embeddable:${project.ext.ktversion}"
 
+    //def dir=new File(StudioCompilePath)
+    //recDep(dir)
+}
+
+def recDep(dir){
+    def files=dir.listFiles()
+    for(File f:files){
+        println(""+f.absolutePath)
+        if(f.isDirectory()) {
+            dependencies.compileOnly fileTree(dir: f.absolutePath, include: ['*.jar'])
+            recDep(f)
+            println("=====")
+        }
+    }
 }
 //
 task(verifySetup) {

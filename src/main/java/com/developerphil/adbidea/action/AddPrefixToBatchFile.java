@@ -49,7 +49,10 @@ import com.intellij.util.AdapterProcessor;
 import com.intellij.util.ThrowableRunnable;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.kotlin.com.intellij.psi.PsiClass;
 import org.jetbrains.kotlin.com.intellij.psi.util.PsiUtil;
+import org.jetbrains.kotlin.psi.KtElement;
+import org.jetbrains.kotlin.psi.KtPsiUtil;
 
 import javax.swing.*;
 import java.awt.event.ActionEvent;
@@ -98,28 +101,28 @@ public class AddPrefixToBatchFile extends AnAction {
         RefactoringDialog dialog = new RefactoringDialog(project, false);
         dialog.setDoRenameListener(new RefactoringDialog.DoRenameListener() {
             @Override
-            public void doRenameActivityFragment(String prefix,String oldPrefix) {
-                renameFragmentAndActivity(prefix,oldPrefix);
+            public void doRenameActivityFragment(String prefix, String oldPrefix) {
+                renameFragmentAndActivity(prefix, oldPrefix);
             }
 
             @Override
-            public void doRenameBinding(String prefix,String oldPrefix) {
-                renameXmlBinding(prefix,oldPrefix);
+            public void doRenameBinding(String prefix, String oldPrefix) {
+                renameXmlBinding(prefix, oldPrefix);
             }
 
             @Override
-            public void doRenameClass(String prefix,String oldPrefix) {
-                renameClass(prefix,null,oldPrefix);
+            public void doRenameClass(String prefix, String oldPrefix) {
+                renameClass(prefix, null, oldPrefix);
             }
 
             @Override
-            public void doRename(String prefix,String oldPrefix) {
-                renameResFile(prefix,oldPrefix);
+            public void doRename(String prefix, String oldPrefix) {
+                renameResFile(prefix, oldPrefix);
             }
 
             @Override
-            public void doRenameContent(String prefix,String oldPrefix) {
-                renameXmlContent(prefix,oldPrefix);
+            public void doRenameContent(String prefix, String oldPrefix) {
+                renameXmlContent(prefix, oldPrefix);
             }
         });
 
@@ -211,7 +214,7 @@ public class AddPrefixToBatchFile extends AnAction {
     }
 
 
-    public final void renameXmlContent(String prefix,String oldPrefix) {
+    public final void renameXmlContent(String prefix, String oldPrefix) {
 
         @Nullable PsiElement startRoot = findSelectedPsiElement();
         PlugUtil.showMsg("startRoot:" + startRoot, project);
@@ -235,12 +238,12 @@ public class AddPrefixToBatchFile extends AnAction {
         });
 
         for (PsiElement xmlFile : result) {
-            renameContent(xmlFile, prefix,oldPrefix);
+            renameContent(xmlFile, prefix, oldPrefix);
         }
 
     }
 
-    public final void renameXmlBinding(String xmlPrefix,String oldPrefix) {
+    public final void renameXmlBinding(String xmlPrefix, String oldPrefix) {
 
         @Nullable PsiElement startRoot = findSelectedPsiElement();
         PlugUtil.showMsg("startRoot:" + startRoot, project);
@@ -264,7 +267,7 @@ public class AddPrefixToBatchFile extends AnAction {
             }
         });
 
-        if(result.isEmpty()){
+        if (result.isEmpty()) {
             return;
         }
 
@@ -275,25 +278,24 @@ public class AddPrefixToBatchFile extends AnAction {
         doBinding(result.remove(0), xmlPrefix, new Runnable() {
             @Override
             public void run() {
-                final Runnable outer=this;
+                final Runnable outer = this;
                 ApplicationManager.getApplication().invokeLater(new Runnable() {
                     @Override
                     public void run() {
-                        if(!result.isEmpty()){
-                            PlugUtil.showMsg("run===",project);
-                            doBinding(result.remove(0),xmlPrefix,outer,oldPrefix);
+                        if (!result.isEmpty()) {
+                            PlugUtil.showMsg("run===", project);
+                            doBinding(result.remove(0), xmlPrefix, outer, oldPrefix);
                         }
                     }
                 });
 
             }
-        },oldPrefix);
-
+        }, oldPrefix);
 
 
     }
 
-    private void doBinding(PsiElement xmlFile,String xmlPrefix,Runnable runnable,String oldPrefix){
+    private void doBinding(PsiElement xmlFile, String xmlPrefix, Runnable runnable, String oldPrefix) {
         String oldName = getOldName(xmlFile);
         // PlugUtil.showMsg("binding xmlFile:" + oldName, project);
         if (oldName == null) {
@@ -305,8 +307,8 @@ public class AddPrefixToBatchFile extends AnAction {
             return;
         }
         oldName = oldName.substring(xmlPrefix.length());
-        if(oldPrefix!=null&&oldPrefix.length()>0){
-            oldName= oldPrefix+oldName;
+        if (oldPrefix != null && oldPrefix.length() > 0) {
+            oldName = oldPrefix + oldName;
         }
         String[] arr = oldName.split("_");
         if (arr == null || arr.length <= 0) {
@@ -325,14 +327,14 @@ public class AddPrefixToBatchFile extends AnAction {
             runnable.run();
             return;
         }
-        String prefix=upperFistChar(prefixarr[0]);
-        String newBindingName=prefix+bindingName;
+        String prefix = upperFistChar(prefixarr[0]);
+        String newBindingName = prefix + bindingName;
         PlugUtil.showMsg("newBindingName name:" + newBindingName, project);
 
         replaceStringUse(bindingName, newBindingName, runnable);
     }
 
-    private void replaceStringUse(String beReplace,String newVal,Runnable runnable){
+    private void replaceStringUse(String beReplace, String newVal, Runnable runnable) {
         FindManager findManager = FindManager.getInstance(this.project);
 
         FindModel findModel;
@@ -342,10 +344,10 @@ public class AddPrefixToBatchFile extends AnAction {
         findModel.setStringToFind(beReplace);
         findModel.setStringToReplace(newVal);
 
-        replaceInPath(findModel,runnable);
+        replaceInPath(findModel, runnable);
     }
 
-    public void replaceInPath(@NotNull FindModel findModel,Runnable runnable) {
+    public void replaceInPath(@NotNull FindModel findModel, Runnable runnable) {
         FindManager findManager = FindManager.getInstance(project);
         if (findModel.isProjectScope() || FindInProjectUtil.getDirectory(findModel) != null || findModel.getModuleName() != null || findModel.getCustomScope() != null) {
             UsageViewManager manager = UsageViewManager.getInstance(this.project);
@@ -356,9 +358,9 @@ public class AddPrefixToBatchFile extends AnAction {
                 FindUsagesProcessPresentation processPresentation = FindInProjectUtil.setupProcessPresentation(this.project, true, presentation);
                 processPresentation.setShowFindOptionsPrompt(findModel.isPromptOnReplace());
                 UsageSearcherFactory factory = new UsageSearcherFactory(findModelCopy, processPresentation);
-                this.searchAndShowUsages(manager, factory, findModelCopy, presentation, processPresentation,runnable);
+                this.searchAndShowUsages(manager, factory, findModelCopy, presentation, processPresentation, runnable);
             }
-        }else{
+        } else {
             runnable.run();
         }
     }
@@ -367,7 +369,7 @@ public class AddPrefixToBatchFile extends AnAction {
                                     Runnable runnable) {
         presentation.setMergeDupLinesAvailable(false);
         ReplaceInProjectTarget target = new ReplaceInProjectTarget(this.project, findModelCopy);
-        ((FindManagerImpl)FindManager.getInstance(this.project)).getFindUsagesManager().addToHistory(target);
+        ((FindManagerImpl) FindManager.getInstance(this.project)).getFindUsagesManager().addToHistory(target);
         final ReplaceContext[] context = new ReplaceContext[1];
         manager.searchAndShowUsages(new UsageTarget[]{target}, usageSearcherFactory, processPresentation, presentation, new UsageViewManager.UsageViewStateListener() {
             public void usageViewCreated(@NotNull UsageView usageView) {
@@ -377,20 +379,20 @@ public class AddPrefixToBatchFile extends AnAction {
 
             public void findingUsagesFinished(UsageView usageView) {
                 if (context[0] != null) {
-                    PlugUtil.showMsg("findingUsagesFinished",project);
+                    PlugUtil.showMsg("findingUsagesFinished", project);
                     ApplicationManager.getApplication().invokeLater(() -> {
                         try {
                             replaceUsagesUnderCommand(context[0], usageView.getUsages(), runnable);
                             context[0].invalidateExcludedSetCache();
-                        }catch (Throwable e){
-                            PlugUtil.showMsg(getStack(e),project);
+                        } catch (Throwable e) {
+                            PlugUtil.showMsg(getStack(e), project);
                             runnable.run();
                         }
                     }, project.getDisposed());
 
 //                    replaceUsagesUnderCommand(context[0], usageView.getUsages(), runnable);
 //                    context[0].invalidateExcludedSetCache();
-                }else{
+                } else {
                     runnable.run();
                 }
 
@@ -401,10 +403,10 @@ public class AddPrefixToBatchFile extends AnAction {
     private void replaceUsagesUnderCommand(@NotNull ReplaceContext replaceContext, @NotNull Set<? extends Usage> usagesSet,
                                            Runnable runnable) throws Throwable {
 
-        PlugUtil.showMsg("replaceUsagesUnderCommand",project);
+        PlugUtil.showMsg("replaceUsagesUnderCommand", project);
 
         if (!usagesSet.isEmpty()) {
-            PlugUtil.showMsg("replaceUsagesUnderCommand1",project);
+            PlugUtil.showMsg("replaceUsagesUnderCommand1", project);
             List<Usage> usages = new ArrayList(usagesSet);
             Collections.sort(usages, UsageViewImpl.USAGE_COMPARATOR);
             if (this.ensureUsagesWritable(replaceContext, usages)) {
@@ -414,15 +416,15 @@ public class AddPrefixToBatchFile extends AnAction {
 //
 //                }, FindBundle.message("find.replace.command", new Object[0]), (Object)null);
 
-                PlugUtil.showMsg("replaceUsagesUnderCommand2",project);
-            boolean success = this.replaceUsages(replaceContext, usages,runnable);
-            UsageView usageView = replaceContext.getUsageView();
+                PlugUtil.showMsg("replaceUsagesUnderCommand2", project);
+                boolean success = this.replaceUsages(replaceContext, usages, runnable);
+                UsageView usageView = replaceContext.getUsageView();
                 replaceContext.invalidateExcludedSetCache();
-            }else{
+            } else {
                 runnable.run();
             }
-        }else{
-            PlugUtil.showMsg("replaceUsagesUnderCommand usagesSet.isEmpty",project);
+        } else {
+            PlugUtil.showMsg("replaceUsagesUnderCommand usagesSet.isEmpty", project);
             runnable.run();
         }
     }
@@ -431,9 +433,9 @@ public class AddPrefixToBatchFile extends AnAction {
         Set<VirtualFile> readOnlyFiles = null;
         Iterator var4 = selectedUsages.iterator();
 
-        while(var4.hasNext()) {
-            Usage usage = (Usage)var4.next();
-            VirtualFile file = ((UsageInFile)usage).getFile();
+        while (var4.hasNext()) {
+            Usage usage = (Usage) var4.next();
+            VirtualFile file = ((UsageInFile) usage).getFile();
             if (file != null && !file.isWritable()) {
                 if (readOnlyFiles == null) {
                     readOnlyFiles = new HashSet();
@@ -466,19 +468,19 @@ public class AddPrefixToBatchFile extends AnAction {
                 return false;
             }
 
-            usage = (Usage)var1.next();
-        } while(!usage.isReadOnly());
+            usage = (Usage) var1.next();
+        } while (!usage.isReadOnly());
 
         return true;
     }
 
     private boolean replaceUsages(@NotNull ReplaceContext replaceContext, @NotNull Collection<? extends Usage> usages, Runnable runnable) throws Throwable {
         if (!ensureUsagesWritable(replaceContext, usages)) {
-            PlugUtil.showMsg("replaceUsages",project);
+            PlugUtil.showMsg("replaceUsages", project);
             runnable.run();
             return true;
         }
-        PlugUtil.showMsg("replaceUsages1",project);
+        PlugUtil.showMsg("replaceUsages1", project);
         int[] replacedCount = {0};
         boolean[] success = {true};
         WriteCommandAction.writeCommandAction(project).run(new ThrowableRunnable<Throwable>() {
@@ -490,89 +492,89 @@ public class AddPrefixToBatchFile extends AnAction {
 //                 @Override
 //                 public void run() {
 
-                     PlugUtil.showMsg("replaceUsages2", project);
-                    // indicator.setIndeterminate(false);
-                     int processed = 0;
-                     VirtualFile lastFile = null;
+                PlugUtil.showMsg("replaceUsages2", project);
+                // indicator.setIndeterminate(false);
+                int processed = 0;
+                VirtualFile lastFile = null;
 
-                     for (final Usage usage : usages) {
-                         ++processed;
-                        // indicator.checkCanceled();
-                         //indicator.setFraction((float) processed / usages.size());
+                for (final Usage usage : usages) {
+                    ++processed;
+                    // indicator.checkCanceled();
+                    //indicator.setFraction((float) processed / usages.size());
 
-                         if (usage instanceof UsageInFile) {
-                             VirtualFile virtualFile = ((UsageInFile) usage).getFile();
-                             if (virtualFile != null && !virtualFile.equals(lastFile)) {
-                                // indicator.setText2(virtualFile.getPresentableUrl());
-                                 lastFile = virtualFile;
-                             }
-                         }
+                    if (usage instanceof UsageInFile) {
+                        VirtualFile virtualFile = ((UsageInFile) usage).getFile();
+                        if (virtualFile != null && !virtualFile.equals(lastFile)) {
+                            // indicator.setText2(virtualFile.getPresentableUrl());
+                            lastFile = virtualFile;
+                        }
+                    }
 
-                         ProgressManager.getInstance().executeNonCancelableSection(() -> {
-                             try {
-                                 PlugUtil.showMsg("replaceUsages3", project);
-                                 if (replaceUsage(usage, replaceContext.getFindModel(), new HashSet<>())) {
-                                     replacedCount[0]++;
-                                     PlugUtil.showMsg("replaceUsages4", project);
-                                 }
-                             } catch (Throwable ex) {
-                                 PlugUtil.showMsg(getStack(ex),project);
-                                 markAsMalformedReplacement(replaceContext, usage);
-                                 success[0] = false;
-                             }
-                         });
-                     }
+                    ProgressManager.getInstance().executeNonCancelableSection(() -> {
+                        try {
+                            PlugUtil.showMsg("replaceUsages3", project);
+                            if (replaceUsage(usage, replaceContext.getFindModel(), new HashSet<>())) {
+                                replacedCount[0]++;
+                                PlugUtil.showMsg("replaceUsages4", project);
+                            }
+                        } catch (Throwable ex) {
+                            PlugUtil.showMsg(getStack(ex), project);
+                            markAsMalformedReplacement(replaceContext, usage);
+                            success[0] = false;
+                        }
+                    });
+                }
 
-                     FileDocumentManager.getInstance().saveAllDocuments();
+                FileDocumentManager.getInstance().saveAllDocuments();
 //                 }
 //             }
-       // );
-       // success[0] &= result;
-        replaceContext.getUsageView().removeUsagesBulk(usages);
+                // );
+                // success[0] &= result;
+                replaceContext.getUsageView().removeUsagesBulk(usages);
 
                 runnable.run();
 
             }
         });
-       // reportNumberReplacedOccurrences(myProject, replacedCount[0]);
+        // reportNumberReplacedOccurrences(myProject, replacedCount[0]);
         return success[0];
     }
 
 
     public boolean replaceUsage(@NotNull Usage usage, @NotNull FindModel findModel, @NotNull Set<Usage> excludedSet) throws FindManager.MalformedReplacementStringException {
 
-        PlugUtil.showMsg("replaceUsage=====1",project);
+        PlugUtil.showMsg("replaceUsage=====1", project);
 
         if (excludedSet.contains(usage)) {
-            PlugUtil.showMsg("replaceUsages=====9",project);
+            PlugUtil.showMsg("replaceUsages=====9", project);
             return false;
         } else {
-            Document document = ((UsageInfo2UsageAdapter)usage).getDocument();
-            PlugUtil.showMsg("document.isWritable():"+document.isWritable() ,project);
-            return !document.isWritable() ? false : ((UsageInfo2UsageAdapter)usage).processRangeMarkers((segment) -> {
+            Document document = ((UsageInfo2UsageAdapter) usage).getDocument();
+            PlugUtil.showMsg("document.isWritable():" + document.isWritable(), project);
+            return !document.isWritable() ? false : ((UsageInfo2UsageAdapter) usage).processRangeMarkers((segment) -> {
                 int textOffset = segment.getStartOffset();
                 int textEndOffset = segment.getEndOffset();
                 Ref stringToReplace = Ref.create();
 
                 try {
-                    PlugUtil.showMsg("replaceUsages=====99",project);
+                    PlugUtil.showMsg("replaceUsages=====99", project);
                     if (!getStringToReplace(textOffset, textEndOffset, document, findModel, stringToReplace)) {
-                        PlugUtil.showMsg("replaceUsages=====99a",project);
+                        PlugUtil.showMsg("replaceUsages=====99a", project);
                         return true;
                     } else {
-                        PlugUtil.showMsg("replaceUsages=====99b",project);
+                        PlugUtil.showMsg("replaceUsages=====99b", project);
                         if (!stringToReplace.isNull()) {
-                            PlugUtil.showMsg("replaceUsages=====99c:"+(CharSequence)stringToReplace.get(),project);
-                            document.replaceString(textOffset, textEndOffset, (CharSequence)stringToReplace.get());
+                            PlugUtil.showMsg("replaceUsages=====99c:" + (CharSequence) stringToReplace.get(), project);
+                            document.replaceString(textOffset, textEndOffset, (CharSequence) stringToReplace.get());
                         }
 
                         return true;
                     }
                 } catch (Throwable var10) {
-                    PlugUtil.showMsg(getStack(var10),project);
-                    PlugUtil.showMsg("replaceUsages=====999",project);
+                    PlugUtil.showMsg(getStack(var10), project);
+                    PlugUtil.showMsg("replaceUsages=====999", project);
                     return false;
-                }finally {
+                } finally {
 
                 }
             });
@@ -669,6 +671,7 @@ public class AddPrefixToBatchFile extends AnAction {
             this.excludedSet = null;
         }
     }
+
     private String upperFistChar(String str) {
         if (str == null || str.isEmpty()) {
             return str;
@@ -705,17 +708,17 @@ public class AddPrefixToBatchFile extends AnAction {
         public UsageSearcher create() {
             return (processor) -> {
                 try {
-                   // ReplaceInProjectManager.this.myIsFindInProgress = true;
+                    // ReplaceInProjectManager.this.myIsFindInProgress = true;
                     FindInProjectUtil.findUsages(this.myFindModelCopy, project, new AdapterProcessor(processor, UsageInfo2UsageAdapter.CONVERTER), this.myProcessPresentation);
                 } finally {
-                   // ReplaceInProjectManager.this.myIsFindInProgress = false;
+                    // ReplaceInProjectManager.this.myIsFindInProgress = false;
                 }
 
             };
         }
     }
 
-    private void renameContent(PsiElement xmlFile, String prefix,String oldPrefix) {
+    private void renameContent(PsiElement xmlFile, String prefix, String oldPrefix) {
         List<PsiElement> result = getResNameFromLayout(xmlFile);
         if (result == null || result.isEmpty()) {
             PlugUtil.showMsg("skip xml:" + xmlFile, project);
@@ -724,7 +727,7 @@ public class AddPrefixToBatchFile extends AnAction {
 
         for (PsiElement p : result) {
             //PlugUtil.showMsg(p.toString() + "@" + p.getClass().getName(), project);
-            dor(p, prefix,oldPrefix);
+            dor(p, prefix, oldPrefix);
         }
     }
 
@@ -733,7 +736,7 @@ public class AddPrefixToBatchFile extends AnAction {
 
     }
 
-    public final void renameResFile(String prefix,String oldPrefix) {
+    public final void renameResFile(String prefix, String oldPrefix) {
 
         @Nullable PsiElement startRoot = findSelectedPsiElement();
         PlugUtil.showMsg("startRoot:" + startRoot, project);
@@ -758,28 +761,87 @@ public class AddPrefixToBatchFile extends AnAction {
         });
 
         for (PsiElement p : result) {
-            dor(p, prefix,oldPrefix);
+            dor(p, prefix, oldPrefix);
+        }
+
+    }
+
+//    private String getJavaPkgName(PsiElement element){
+////        if(element instanceof KtElement){
+////            String r= KtPsiUtil.getPackageName((KtElement)element);
+////            PlugUtil.showMsg("r:"+r,project);
+////        }else if(element instanceof PsiClass) {//not found ,must use reflect.todo
+////            String r=PsiUtil.getPackageName((PsiClass) element);
+////            PlugUtil.showMsg("r java:"+r,project);
+////        }
+//        if(isJavaClass(element)){
+//          return getPsiElementPackageName(element,element.getClass());
+//        }
+//        return null;
+//    }
+
+
+    private String getFullClassName(PsiElement element) {
+        if (element instanceof KtElement) {
+            return KtPsiUtil.getPackageName((KtElement) element)+"."+getOldName(element);
+        }
+        if (isJavaClass(element)) {
+            return getPsiElementPackageName(element);
+        }
+
+        return null;
+    }
+
+    private Method findMethodInParentRec(Class elementClass, String methodName) {
+        if (elementClass == null) {
+            return null;
+        }
+
+        try {
+            Method method = elementClass.getDeclaredMethod(methodName);
+            return method;
+        } catch (NoSuchMethodException e) {
+            e.printStackTrace();
+            PlugUtil.showMsg(getStack(e),project);
+            return findMethodInParentRec(elementClass.getSuperclass(), methodName);
         }
 
     }
 
 
-    public void renameFragmentAndActivity(String prefix,String oldPrefix) {
+    private boolean isClassFor(PsiElement element, String className) {
+        return element.getClass().getName().equals(className);
+    }
+
+
+    public void renameFragmentAndActivity(String prefix, String oldPrefix) {
         renameClass(prefix, new ConditionPredicate() {
             @Override
             public boolean isMatch(PsiElement element) {
                 String oldName = getOldName(element);
-                PlugUtil.showMsg("aQualifiedName:" + oldName, project);
+                PlugUtil.showMsg("oldName:" + oldName, project);
                 if (oldName == null) {
                     return false;
                 }
+                element.accept(new PsiElementVisitor() {
+                    @Override
+                    public void visitElement(PsiElement element) {
+                        PlugUtil.showMsg("element0:" + element, project);
+                        super.visitElement(element);
+                    }
+                });
+                //String name=getFullClassName(element);
+               // PlugUtil.showMsg("pkgname:" + name, project);
+                //PlugUtil.showMsg("isact:" +isActivity(name), project);
+               // PlugUtil.showMsg("isfrag:" +isFragment(name), project);
 
-                return oldName.contains("Fragment") || oldName.contains("Activity");
+                 return oldName.contains("Fragment") || oldName.contains("Activity");
+
             }
-        },oldPrefix);
+        }, oldPrefix);
     }
 
-    public void renameClass(String prefix, ConditionPredicate extraFilter,String oldPrefix) {
+    public void renameClass(String prefix, ConditionPredicate extraFilter, String oldPrefix) {
         @Nullable PsiElement startRoot = findSelectedPsiElement();
         PlugUtil.showMsg("startRoot:" + startRoot, project);
 
@@ -805,7 +867,7 @@ public class AddPrefixToBatchFile extends AnAction {
         });
 
         for (PsiElement p : result.values()) {
-            dor(p, prefix,oldPrefix);
+            dor(p, prefix, oldPrefix);
         }
 
 
@@ -829,6 +891,17 @@ public class AddPrefixToBatchFile extends AnAction {
 
     private boolean isJavaClass(PsiElement element) {
         return element.getClass().getName().equals("com.intellij.psi.impl.source.PsiClassImpl");
+    }
+
+    private boolean isActivity(String clsname) {
+      Class cls=findCls(clsname);
+      return cls.isAssignableFrom(findCls("android.app.Activity"));
+    }
+
+    private boolean isFragment(String clsname) {
+        Class cls=findCls(clsname);
+        return cls.isAssignableFrom(findCls("androidx.fragment.app.Fragment"))||
+                cls.isAssignableFrom(findCls("android.app.Fragment"));
     }
 
     private Class findCls(String classname) {
@@ -875,7 +948,7 @@ public class AddPrefixToBatchFile extends AnAction {
         return oldName;
     }
 
-    private void dor(PsiElement element, String prefix,String oldPrefix) {
+    private void dor(PsiElement element, String prefix, String oldPrefix) {
         String oldName = null;
         boolean isSearchTextOccurrences = false;
 
@@ -902,8 +975,8 @@ public class AddPrefixToBatchFile extends AnAction {
             return;
         }
 
-        if(oldPrefix!=null&&oldPrefix.length()>0&&oldName.startsWith(oldPrefix)){
-            oldName=oldName.substring(oldPrefix.length());//del old prefix.
+        if (oldPrefix != null && oldPrefix.length() > 0 && oldName.startsWith(oldPrefix)) {
+            oldName = oldName.substring(oldPrefix.length());//del old prefix.
         }
 
         if (!oldName.endsWith(".kt")) {
@@ -952,9 +1025,12 @@ public class AddPrefixToBatchFile extends AnAction {
         }
     }
 
-    private String getPsiClassImplQualifiedName(PsiElement element, Class clazz) {
+    private String getPsiElementPackageName(PsiElement element) {
         try {
-            Method getNameMethod = clazz.getDeclaredMethod("getPackageName");
+            Method getNameMethod =findMethodInParentRec(element.getClass(),"getQualifiedName");
+            if(getNameMethod==null){
+                return null;
+            }
             getNameMethod.setAccessible(true);
             return getNameMethod.invoke(element).toString();
 
@@ -1004,7 +1080,7 @@ public class AddPrefixToBatchFile extends AnAction {
                     XmlTag tag = (XmlTag) element;
                     String name = tag.getName();
 
-                    if (name.equals("declare-styleable") || name.equals("attr")|| name.equals("style")) {
+                    if (name.equals("declare-styleable") || name.equals("attr") || name.equals("style")) {
                         return;
                     }
 
