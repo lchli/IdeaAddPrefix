@@ -1,12 +1,9 @@
 package com.developerphil.adbidea.action;
 
-import com.android.tools.pixelprobe.TextInfo;
 import com.intellij.find.FindBundle;
 import com.intellij.find.FindManager;
 import com.intellij.find.FindModel;
 import com.intellij.find.FindResult;
-import com.intellij.find.actions.FindInPathAction;
-import com.intellij.find.actions.ReplaceInPathAction;
 import com.intellij.find.impl.FindInProjectUtil;
 import com.intellij.find.impl.FindManagerImpl;
 import com.intellij.find.replaceInProject.ReplaceInProjectManager;
@@ -14,9 +11,6 @@ import com.intellij.ide.DataManager;
 import com.intellij.json.psi.impl.JsonFileImpl;
 import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.application.ApplicationManager;
-import com.intellij.openapi.application.WriteAction;
-import com.intellij.openapi.application.impl.ApplicationImpl;
-import com.intellij.openapi.command.CommandProcessor;
 import com.intellij.openapi.command.WriteCommandAction;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
@@ -28,7 +22,6 @@ import com.intellij.openapi.util.Ref;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.openapi.vfs.ReadonlyStatusHandler;
 import com.intellij.openapi.vfs.VirtualFile;
-import com.intellij.openapi.wm.IdeFocusManager;
 import com.intellij.psi.*;
 import com.intellij.psi.impl.file.PsiBinaryFileImpl;
 import com.intellij.psi.impl.source.xml.XmlFileImpl;
@@ -49,13 +42,11 @@ import com.intellij.util.AdapterProcessor;
 import com.intellij.util.ThrowableRunnable;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.jetbrains.kotlin.com.intellij.psi.PsiClass;
-import org.jetbrains.kotlin.com.intellij.psi.util.PsiUtil;
 import org.jetbrains.kotlin.psi.KtElement;
+import org.jetbrains.kotlin.psi.KtObjectDeclaration;
 import org.jetbrains.kotlin.psi.KtPsiUtil;
 
 import javax.swing.*;
-import java.awt.event.ActionEvent;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.lang.reflect.Method;
@@ -200,7 +191,7 @@ public class AddPrefixToBatchFile extends AnAction {
         for (PsiElement e : children) {
             if (e instanceof PsiDirectory || isDir(e) ||
                     isJavaClass(e) || isJavaFile(e) ||
-                    isKtClass(e) || isKtFile(e)) {
+                    isKtClass(e) || isKtFile(e)||isKtObject(e)) {
                 findJavaKotlin(e, result, condition);
             } else {
                 if (condition.isMatch(e)) {
@@ -830,15 +821,41 @@ public class AddPrefixToBatchFile extends AnAction {
                         super.visitElement(element);
                     }
                 });
-                //String name=getFullClassName(element);
-               // PlugUtil.showMsg("pkgname:" + name, project);
-                //PlugUtil.showMsg("isact:" +isActivity(name), project);
-               // PlugUtil.showMsg("isfrag:" +isFragment(name), project);
+                String name=getFullClassName(element);
 
-                 return oldName.contains("Fragment") || oldName.contains("Activity");
+                PsiClass classInModule = InspectionPsiUtil.createPsiClass(name,project);
+                if(classInModule==null){
+                    return false;
+                }
 
+               // PlugUtil.showMsg("classInModule:" + isActivity(classInModule), project);
+
+                return isFragment(classInModule)||isActivity(classInModule);
+                // return oldName.contains("Fragment") || oldName.contains("Activity");
             }
         }, oldPrefix);
+
+
+    }
+
+    private boolean isActivity(PsiClass aClass) {
+        PsiClass supportLibFragmentClass = InspectionPsiUtil.createPsiClass("android.app.Activity",
+                aClass.getProject());
+        return supportLibFragmentClass != null && aClass.isInheritor(supportLibFragmentClass, true);
+    }
+
+    private boolean isFragment(PsiClass aClass) {
+        PsiClass fragmentClass = InspectionPsiUtil.createPsiClass("android.app.Fragment", aClass.getProject());
+        if (fragmentClass != null && aClass.isInheritor(fragmentClass, true)) {
+            return true;
+        }
+        fragmentClass = InspectionPsiUtil.createPsiClass("androidx.fragment.app.Fragment", aClass.getProject());
+        if (fragmentClass != null && aClass.isInheritor(fragmentClass, true)) {
+            return true;
+        }
+        PsiClass supportLibFragmentClass = InspectionPsiUtil.createPsiClass("android.support.v4.app.Fragment",
+                aClass.getProject());
+        return supportLibFragmentClass != null && aClass.isInheritor(supportLibFragmentClass, true);
     }
 
     public void renameClass(String prefix, ConditionPredicate extraFilter, String oldPrefix) {
@@ -862,7 +879,7 @@ public class AddPrefixToBatchFile extends AnAction {
             public boolean isMatch(PsiElement element) {
                 PlugUtil.showMsg("element:" + element + "@" + element.getClass().getName(), project);
 
-                return (isKtClass(element) || isJavaClass(element) || isKtFile(element)) && filterCopy.isMatch(element);
+                return (isKtClass(element) || isJavaClass(element) || isKtFile(element)||isKtObject(element)) && filterCopy.isMatch(element);
             }
         });
 
@@ -877,6 +894,9 @@ public class AddPrefixToBatchFile extends AnAction {
         return element.getClass().getName().equals("com.intellij.psi.impl.file.PsiJavaDirectoryImpl");
     }
 
+    private boolean isKtObject(PsiElement element) {
+        return element.getClass().getName().equals("org.jetbrains.kotlin.psi.KtObjectDeclaration");
+    }
     private boolean isKtFile(PsiElement element) {
         return element.getClass().getName().equals("org.jetbrains.kotlin.psi.KtFile");
     }
@@ -925,6 +945,8 @@ public class AddPrefixToBatchFile extends AnAction {
             oldName = ((org.jetbrains.kotlin.psi.KtFile) element).getName();
         } else if (element.getClass().getName().equals("org.jetbrains.kotlin.psi.KtClass")) {
             oldName = ((org.jetbrains.kotlin.psi.KtClass) element).getName();
+        }else if (isKtObject(element)) {
+            oldName = ((KtObjectDeclaration) element).getName();
         } else if (element.getClass().getName().equals("com.intellij.psi.impl.source.xml.XmlFileImpl")) {
             oldName = ((XmlFileImpl) element).getName();
         } else if (element.getClass().getName().equals("com.intellij.psi.impl.file.PsiBinaryFileImpl")) {
@@ -960,7 +982,9 @@ public class AddPrefixToBatchFile extends AnAction {
             oldName = ((org.jetbrains.kotlin.psi.KtFile) element).getName();
         } else if (element.getClass().getName().equals("org.jetbrains.kotlin.psi.KtClass")) {
             oldName = ((org.jetbrains.kotlin.psi.KtClass) element).getName();
-        } else if (element.getClass().getName().equals("com.intellij.psi.impl.source.xml.XmlFileImpl")) {
+        } else if (isKtObject(element)) {
+            oldName = ((KtObjectDeclaration) element).getName();
+        }else if (element.getClass().getName().equals("com.intellij.psi.impl.source.xml.XmlFileImpl")) {
             oldName = ((XmlFileImpl) element).getName();
         } else if (element.getClass().getName().equals("com.intellij.psi.impl.file.PsiBinaryFileImpl")) {
             oldName = ((PsiBinaryFileImpl) element).getName();
@@ -988,6 +1012,12 @@ public class AddPrefixToBatchFile extends AnAction {
         PlugUtil.showMsg("oldName:" + oldName, project);
 
         if (oldName.startsWith("AndroidManifest")) {
+            return;
+        }
+        if (oldName.equals("string")||oldName.equals("strings")||
+                oldName.equals("dimen")||oldName.equals("dimens")||
+                oldName.equals("color")||oldName.equals("colors")||
+                oldName.equals("style")||oldName.equals("styles")) {
             return;
         }
 
