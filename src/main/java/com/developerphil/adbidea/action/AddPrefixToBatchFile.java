@@ -147,10 +147,12 @@ public class AddPrefixToBatchFile extends AnAction {
 
     private void findMatchedChildrenInDirOnly(PsiElement startRoot, List<PsiElement> result, ConditionPredicate condition) {
         if (startRoot == null || result == null) {
+            PlugUtil.showMsg("startRoot == null || result == null", project);
             return;
         }
 
         if (condition.isMatch(startRoot)) {
+            PlugUtil.showMsg("condition.isMatch1(e):"+condition.isMatch(startRoot), project);
             result.add(startRoot);
         }
 
@@ -163,6 +165,7 @@ public class AddPrefixToBatchFile extends AnAction {
             if (e instanceof PsiDirectory) {
                 findMatchedChildrenInDirOnly(e, result, condition);
             } else {
+                PlugUtil.showMsg("condition.isMatch(e):"+condition.isMatch(e), project);
                 if (condition.isMatch(e)) {
                     result.add(e);
                 }
@@ -248,6 +251,8 @@ public class AddPrefixToBatchFile extends AnAction {
         findMatchedChildrenInDirOnly(startRoot, result, new ConditionPredicate() {
             @Override
             public boolean isMatch(PsiElement element) {
+                PlugUtil.showMsg("element.getClass().getName():" + element.getClass().getName(), project);
+
                 if (element.getClass().getName().equals("com.intellij.psi.impl.source.xml.XmlFileImpl") &&
                         isLayoutBindingFile(element)) {
 
@@ -259,6 +264,7 @@ public class AddPrefixToBatchFile extends AnAction {
         });
 
         if (result.isEmpty()) {
+            PlugUtil.showMsg("result.isEmpty()", project);
             return;
         }
 
@@ -318,7 +324,14 @@ public class AddPrefixToBatchFile extends AnAction {
             runnable.run();
             return;
         }
+
         String prefix = upperFistChar(prefixarr[0]);
+
+        if(bindingName.startsWith(prefix)){
+            runnable.run();
+            return;
+        }
+
         String newBindingName = prefix + bindingName;
         PlugUtil.showMsg("newBindingName name:" + newBindingName, project);
 
