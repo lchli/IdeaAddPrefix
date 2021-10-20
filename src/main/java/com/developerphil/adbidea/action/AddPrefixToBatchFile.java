@@ -1137,7 +1137,7 @@ public class AddPrefixToBatchFile extends AnAction {
                         return; // empty value
                     }
                     XmlTag parent = tag.getParentTag();
-                    if (parent != null && parent.getName().equals("style")) {
+                    if (parent != null && (parent.getName().equals("style")||parent.getName().equals("attr"))) {
                         return;
                     }
 
