@@ -16,12 +16,12 @@ import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.roots.ProjectRootManager;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.util.Factory;
 import com.intellij.openapi.util.Ref;
 import com.intellij.openapi.util.text.StringUtil;
-import com.intellij.openapi.vfs.ReadonlyStatusHandler;
-import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.openapi.vfs.*;
 import com.intellij.psi.*;
 import com.intellij.psi.impl.file.PsiBinaryFileImpl;
 import com.intellij.psi.impl.source.xml.XmlFileImpl;
@@ -40,16 +40,19 @@ import com.intellij.usages.impl.UsageViewImpl;
 import com.intellij.usages.rules.UsageInFile;
 import com.intellij.util.AdapterProcessor;
 import com.intellij.util.ThrowableRunnable;
+import com.intellij.util.io.IOUtil;
+import org.apache.commons.io.IOUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.kotlin.psi.KtElement;
 import org.jetbrains.kotlin.psi.KtObjectDeclaration;
 import org.jetbrains.kotlin.psi.KtPsiUtil;
+import other.mviSetup.ActivtyAndLayoutKt;
 
 import javax.swing.*;
-import java.io.PrintWriter;
-import java.io.StringWriter;
+import java.io.*;
 import java.lang.reflect.Method;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 
@@ -98,7 +101,29 @@ public class AddPrefixToBatchFile extends AnAction {
 
             @Override
             public void doRenameBinding(String prefix, String oldPrefix) {
-                renameXmlBinding(prefix, oldPrefix);
+               // renameXmlBinding(prefix, oldPrefix);
+                try {
+                    String packageName="";
+                    String packageNamePath= packageName.replaceAll("\\.","/");
+
+                    String tmp=ActivtyAndLayoutKt.someActivity(packageName, "entityName",
+                            "layoutName", null);
+                    File f=new File(project.getBasePath(),"app/src/main/java/"+packageNamePath+"/App.kt");
+                    PlugUtil.showMsg(f.getAbsolutePath(),project);
+                    FileOutputStream ous = new FileOutputStream(f);
+                    IOUtils.write(tmp.getBytes(StandardCharsets.UTF_8),ous);
+                    ous.close();
+
+                    FileDocumentManager.getInstance().saveAllDocuments();
+
+                    VirtualFile vv =  VfsUtil.findFileByIoFile(f,true);
+
+                    FileDocumentManager.getInstance().reloadFromDisk( FileDocumentManager.getInstance().getDocument(vv));
+
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                    PlugUtil.showMsg(getStack(ex),project);
+                }
             }
 
             @Override
