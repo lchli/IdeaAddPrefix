@@ -1,101 +1,58 @@
-buildscript {
-    ext.ktversion="1.3.72"
 
-    repositories {
-        mavenCentral()
-        jcenter()
-    }
-    dependencies {
-
-    }
-}
 
 plugins {
     id 'java'
-    id 'org.jetbrains.intellij' version '1.1.2'
-    id "org.jetbrains.kotlin.jvm" version "1.3.72"
+    //id 'org.jetbrains.intellij' version '0.6.5'
+    id("org.jetbrains.intellij") version "1.4.0"
+
+    id("org.jetbrains.kotlin.jvm") version "1.6.10"
 }
 
+group 'com.shuzijun'
+version '1.0.0'
 
-sourceCompatibility = 1.8
-targetCompatibility = 1.8
-
-
-compileKotlin {
-    kotlinOptions.jvmTarget = "1.8"
-}
-compileTestKotlin {
-    kotlinOptions.jvmTarget = "1.8"
-}
 
 repositories {
     mavenCentral()
-    jcenter()
 }
 
-sourceSets {
-    main {
-        resources {
-            exclude 'website/adb_operations_popup.png'
-            exclude 'website/find_actions.png'
-            exclude 'website/debug_howto.png'
-        }
-    }
-}
-//
-if (!hasProperty('StudioCompilePath')) {
-    throw new GradleException("No StudioCompilePath value was set, please create gradle.properties file")
+dependencies {
+    //compile project(":plantuml-parser-core")
 }
 
 intellij {
-   // version = "2020.2.4"
-    pluginName = "LchAddPrefix"
-    updateSinceUntilBuild = false
-   // alternativeIdePath = <ENTER THE PATH TO YOUR ANDROID STUDIO FOLDER HERE>
-    localPath = project.hasProperty("StudioRunPath") ? StudioRunPath : StudioCompilePath
+    //pluginName.set("plantuml")
+   // pluginName 'plantuml-parser'
+//    version '2020.1'
+//    type 'IU'
+//    downloadSources false
+//    updateSinceUntilBuild false
+    buildSearchableOptions.enabled(false)
 
+    // Same IntelliJ IDEA version (2019.1.4) as target 3.5 Android Studio:
+    //通过下面的连接找到对应的androidstudio的idea版本。
+    version = '211.7628.21'//https://plugins.jetbrains.com/docs/intellij/android-studio-releases-list.html#2021
+
+    // Use IntelliJ IDEA CE because it's the basis of the IntelliJ Platform:
+    type = 'IC'
+
+    // Require the Android plugin (Gradle will choose the correct version):
+    plugins = ['android']
 }
 
-group 'com.developerphil.intellij.plugin.adbidea'
-
-dependencies {
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:${project.ext.ktversion}"
-    implementation "org.jooq:joor-java-8:0.9.7"
-
-    compileOnly fileTree(dir: "$StudioCompilePath/plugins/android/lib", include: ['*.jar'])
-    compileOnly fileTree(dir: "$StudioCompilePath/lib", include: ['*.jar'])
-    compileOnly fileTree(dir: "$StudioCompilePath/plugins/Kotlin/lib", include: ['*.jar'])
-    compileOnly fileTree(dir: "$StudioCompilePath/plugins/Kotlin/kotlinc/lib", include: ['*.jar'])
-    compileOnly fileTree(dir: "$StudioCompilePath/", include: ['*.jar'])
-    compileOnly fileTree(dir: "$StudioCompilePath/plugins/IntelliLang/lib", include: ['*.jar'])
-    compileOnly fileTree(dir: "$StudioCompilePath/plugins/platform-images/lib", include: ['*.jar'])
-
-    compileOnly "org.jetbrains.kotlin:kotlin-compiler-embeddable:${project.ext.ktversion}"
-
-    //def dir=new File(StudioCompilePath)
-    //recDep(dir)
+runIde {
+    // Absolute path to installed target 3.5 Android Studio to use as
+    // IDE Development Instance (the "Contents" directory is macOS specific):
+    ideDir = file('/Applications/Android Studio.app/Contents')
 }
 
-def recDep(dir){
-    def files=dir.listFiles()
-    for(File f:files){
-        println(""+f.absolutePath)
-        if(f.isDirectory()) {
-            dependencies.compileOnly fileTree(dir: f.absolutePath, include: ['*.jar'])
-            recDep(f)
-            println("=====")
-        }
-    }
-}
-//
-task(verifySetup) {
-    doLast {
-        def ideaJar = "$StudioCompilePath/lib/idea.jar"
-        if (!file(ideaJar).exists()) {
-            throw new GradleException("$ideaJar not found, set StudioCompilePath in gradle.properties")
-        }
-    }
+tasks.withType(JavaCompile) {
+    sourceCompatibility = 11
+    targetCompatibility =11
+    options.encoding = "UTF-8"
 }
 
+compileKotlin {
+    kotlinOptions.jvmTarget = 11
+}
 
-compileJava.dependsOn verifySetup

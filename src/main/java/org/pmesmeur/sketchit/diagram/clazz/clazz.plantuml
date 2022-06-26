@@ -1,0 +1,198 @@
+@startuml
+
+title __CLAZZ's Class Diagram__\n
+
+  package org.pmesmeur.org.pmesmeur.sketchit {
+    package org.pmesmeur.org.pmesmeur.sketchit.diagram {
+      package org.pmesmeur.org.pmesmeur.sketchit.diagram.clazz {
+        class ClassDiagramGenerator {
+            {static} - LOG : Logger
+            - project : Project
+            - module : Module
+            - managedClasses : Set<PsiClass>
+            - patternsToExclude : List<String>
+            - packages : List<String>
+            - sourceDirectory : VirtualFile
+            - title : String
+            - hideMethods : boolean
+            - hideAttributes : boolean
+            - hideInnerClasses : boolean
+            {static} + newBuilder()
+            # ClassDiagramGenerator()
+            - createListOfClassesToManage()
+            - filterClasses()
+            + generate()
+            - getListOfManagedClassesOrderedAlphabetically()
+        }
+      }
+    }
+  }
+  
+
+  package org.pmesmeur.org.pmesmeur.sketchit {
+    package org.pmesmeur.org.pmesmeur.sketchit.diagram {
+      package org.pmesmeur.org.pmesmeur.sketchit.diagram.clazz {
+        class Builder {
+            - project : Project
+            - module : Module
+            - patternsToExclude : List<String>
+            - sourceDirectory : VirtualFile
+            - title : String
+            - hideMethods : boolean
+            - hideAttributes : boolean
+            - hideInnerClasses : boolean
+            + Builder()
+            + exclude()
+            + sourceDirectory()
+            + title()
+            + hideMethods()
+            + hideAttributes()
+            + hideInnerClasses()
+            + build()
+        }
+      }
+    }
+  }
+  
+
+  package org.pmesmeur.org.pmesmeur.sketchit {
+    package org.pmesmeur.org.pmesmeur.sketchit.diagram {
+      package org.pmesmeur.org.pmesmeur.sketchit.diagram.clazz {
+        class StringLengthComparator {
+            + compare()
+        }
+      }
+    }
+  }
+  
+
+  package org.pmesmeur.org.pmesmeur.sketchit {
+    package org.pmesmeur.org.pmesmeur.sketchit.diagram {
+      package org.pmesmeur.org.pmesmeur.sketchit.diagram.clazz {
+        class PsiClassComparator {
+            + compare()
+        }
+      }
+    }
+  }
+  
+
+  package org.pmesmeur.org.pmesmeur.sketchit {
+    package org.pmesmeur.org.pmesmeur.sketchit.diagram {
+      package org.pmesmeur.org.pmesmeur.sketchit.diagram.clazz {
+        enum FieldDisplayType {
+          NONE
+          ATTRIBUTE
+          AGGREGATION
+        }
+      }
+    }
+  }
+  
+
+  package org.pmesmeur.org.pmesmeur.sketchit {
+    package org.pmesmeur.org.pmesmeur.sketchit.diagram {
+      package org.pmesmeur.org.pmesmeur.sketchit.diagram.clazz {
+        class BaseGenerator {
+            # clazz : PsiClass
+            - BaseGenerator()
+            # getFieldDisplayType()
+            # isInheritedMember()
+            - typeBelongsToCurrentProject()
+            - classBelongsToProject()
+            - isBinaryFile()
+            - typeContainsGeneric()
+        }
+      }
+    }
+  }
+  
+
+  package org.pmesmeur.org.pmesmeur.sketchit {
+    package org.pmesmeur.org.pmesmeur.sketchit.diagram {
+      package org.pmesmeur.org.pmesmeur.sketchit.diagram.clazz {
+        class ClassGenerator {
+            + ClassGenerator()
+            + generate()
+            - computePackageStack()
+            - generateClassIntoPackage()
+            - generateEnumValues()
+            - generateEnumValue()
+            - generateClassMembers()
+            - generateClassAttributes()
+            - generateClassField()
+            - getVisibility()
+            - generateClassMethods()
+            - generateClassMethod()
+            - generateInnerClasses()
+            - generateInnerClass()
+        }
+      }
+    }
+  }
+  
+
+  package org.pmesmeur.org.pmesmeur.sketchit {
+    package org.pmesmeur.org.pmesmeur.sketchit.diagram {
+      package org.pmesmeur.org.pmesmeur.sketchit.diagram.clazz {
+        class RelationshipsGenerator {
+            + RelationshipsGenerator()
+            + generate()
+            - generateInterfaceImplementation()
+            - generateClassInheritence()
+            - classIsFromJavaLangPackage()
+            - generateClassAssociations()
+            - generateInnerClassesAssociations()
+            - generateInnerClassesRelationships()
+        }
+      }
+    }
+  }
+  
+
+  package org.pmesmeur.org.pmesmeur.sketchit {
+    package org.pmesmeur.org.pmesmeur.sketchit.diagram {
+      package org.pmesmeur.org.pmesmeur.sketchit.diagram.clazz {
+        class Finder {
+            - project : Project
+            - module : Module
+            - classes : Set<PsiClass>
+            - packages : Set<String>
+            - patternsToExclude : List<String>
+            + Finder()
+            + getClasses()
+            + getPackages()
+            - findClasses()
+            - computeManagedPsiClassesFromFiles()
+            - recordFilePackageAsKnownPackage()
+            - isTestFile()
+            - excluded()
+        }
+      }
+    }
+  }
+  
+
+  ClassDiagramGenerator o-- PlantUmlWriter : plantUmlWriter
+  ClassDiagramGenerator +-down- Builder
+  ClassDiagramGenerator +-down- StringLengthComparator
+  ClassDiagramGenerator +-down- PsiClassComparator
+  ClassDiagramGenerator +-down- FieldDisplayType
+  ClassDiagramGenerator +-down- BaseGenerator
+  ClassDiagramGenerator +-down- ClassGenerator
+  ClassDiagramGenerator +-down- RelationshipsGenerator
+  Builder o-- PlantUmlWriter : plantUmlWriter
+  StringLengthComparator -up-|> Comparator
+  PsiClassComparator -up-|> Comparator
+  ClassGenerator -up-|> BaseGenerator
+  RelationshipsGenerator -up-|> BaseGenerator
+
+
+right footer
+
+
+PlantUML diagram generated by SketchIt! (https://bitbucket.org/pmesmeur/sketch.it)
+For more information about this tool, please contact philippe.mesmeur@gmail.com
+endfooter
+
+@enduml

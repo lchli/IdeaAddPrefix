@@ -1,65 +1,139 @@
-<idea-plugin url="https://github.com/pbreault/adb-idea">
-    <id>com.developerphil.adbidea</id>
-    <name>ADB Idea</name>
-    <version>1.6.2</version>
-    <vendor url="http://www.developerphil.com">Philippe Breault</vendor>
+<idea-plugin>
+  <id>org.pmesmeur.sketchit</id>
+  <name>Sketch It!</name>
+    <version>1.0.0</version>
+  <vendor email="philippe.mesmeur@gmail.com" url="https://bitbucket.org/pmesmeur/sketch.it">Sketch.It!</vendor>
 
-    <description><![CDATA[
-        给工程资源添加前缀:<br />
-        <ul>
-            <li>给资源文件添加前缀</li>
-            <li>给java/kotlin文件添加前缀</li>
-            <li>给资源文件里面的内容添加前缀</li>
+  <description><![CDATA[
 
-        </ul>
-        <br />
-        The basic way to invoke a command:
-        <ul>
-            <li>Through the Tools->LchAddPrefix->menu</li>
+      <h1>SketchIt!</h1>
+      <br/>
 
-        </ul>
-        ]]></description>
+      <a href="https://bitbucket.org/pmesmeur/sketch.it">SketchIt@bitbucket.org</a> |
+      <a href="https://plugins.jetbrains.com/plugin/10387-sketch-it-">SketchIt@jetbrains.com</a> |
+      <a href="mailto:philippe.mesmeur@gmail.com">Author</a> |
+      <a href="https://www.paypal.me/pmesmeur">Donate with PayPal</a>
+      <br/>
+      <br/>
+
+      <b>SketchIt!</b> is a reverse-engineering plugin that generates UML diagrams from your code in the PlantUML format. For this reason, it works perfectly with plugin <a href="https://plugins.jetbrains.com/plugin/7017-plantuml-integration">PlantUML integration</a>
+      <i>
+        (In its current version, it has only been tested with Java code)
+      </i>
+      <br/>
+      <br/>
+
+      <b>Usage</b>
+      <br/>
+        To generate or refresh diagrams, nothing more simple; let's go to the Tools menu and select "Sketch It! (generate UML diagrams)"
+      <br/>
+      <br/>
 
 
-    <change-notes><![CDATA[
-        <b>1.0.0</b>
+      <b>Features</b>
+      <ul>
+        <li>Generate a component diagram at the project root</li>
+        <li>Generate a light class diagram per module</li>
+        <li>Generate a detailed class diagram per package</li>
+        <li>Generate methods inside classes</li>
+        <li>Generate attributes inside classes</li>
+        <li>Generate inheritance relationships between classes</li>
+        <li>Generate association relationships between classes</li>
+        <li>Generate inner-classes relationships</li>
+        <li>Distinguish classes, abstract classes, interfaces, enumerations</li>
+        <li>Generate possible values for enumeration</li>
+        <li>Generate visibility for methods and attributes</li>
+        <li>Distinguish static methods and attributes</li>
+      </ul>
 
-        ]]>
-    </change-notes>
+    ]]>
+  </description>
 
-    <!-- Android Studio 4.0+ -->
-    <!-- see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/build_number_ranges.html -->
-<!--    <idea-version since-build="193"/>-->
+  <change-notes><![CDATA[
+      <p><u>v0.07.00</u></p>
+      <ul>
+       <li><a href="https://bitbucket.org/pmesmeur/sketch.it/issues/42/nullpointerexception">Issue-42</a>: NullPointerException</li>
+       <li><a href="https://bitbucket.org/pmesmeur/sketch.it/issues/45/unexpected-exception-received-while">Issue-45</a>: Unexpected exception received while running Sketch It!: java.lang.ClassCastException</li>
+      </ul>
+      <p><u>v0.06.02</u></p>
+      <ul>
+       <li><a href="https://bitbucket.org/pmesmeur/sketch.it/issues/36/uml-diagrams-are-not-repeatable">Issue-36</a>: UML diagrams are not repeatable</li>
+      </ul>
+      <p><u>v0.06.01</u></p>
+      <ul>
+       <li><a href="https://bitbucket.org/pmesmeur/sketch.it/issues/35/stackoverflow-error">Issue-35</a>: StackOverflow error</li>
+      </ul>
+      <p><u>v0.06.00</u></p>
+      <ul>
+       <li><a href="https://bitbucket.org/pmesmeur/sketch.it/issues/32/packages-layout">Issue-32</a>: Packages layout</li>
+       <li><a href="https://bitbucket.org/pmesmeur/sketch.it/issues/30/uml-representation-of-implements-keyword">Issue-30</a>: UML representation of "implements" keyword</li>
+       <li><a href="https://bitbucket.org/pmesmeur/sketch.it/issues/7/arrayindexoutofboundsexception-on-launch">Issue-07</a>: ArrayIndexOutOfBoundsException on launch</li>
+      </ul>
+      <p><u>v0.05.02</u></p>
+      <ul>
+       <li><a href="https://bitbucket.org/pmesmeur/sketch.it/issues/29/facing-nullpointer-on-clicking-tools">Issue-29</a>: Facing Nullpointer on clicking Tools -> Sketchit(generate uml)</li>
+      </ul>
+      <p><u>v0.05.01</u></p>
+      <ul>
+       <li>add log for debugging</li>
+      </ul>
+      <p><u>v0.05</u></p>
+      <ul>
+       <li><a href="https://bitbucket.org/pmesmeur/sketch.it/issues/26/main-menu-is-sometimes-named-text-boxes">Issue-26</a>: Main menu is sometimes named "Text Boxes"</li>
+       <li><a href="https://bitbucket.org/pmesmeur/sketch.it/issues/27/org.pmesmeur.sketchit-always-receives">Issue-27</a>: Sketch.It! always receives IndexNotReadyException since upgrading to IDEA 19.11.1</li>
+      </ul>
+      <p><u>v0.04.01</u></p>
+      <ul>
+       <li><a href="https://bitbucket.org/pmesmeur/sketch.it/issues/11/nullpointexception-when-using-org.pmesmeur.sketchit">Issue-11</a>: Enhance previous correction that did not solve <a href="https://bitbucket.org/pmesmeur/sketch.it/issues/13/nullpointerexception">Issue-13</a></li>
+      </ul>
+      <p><u>v0.04</u></p>
+      <ul>
+       <li><a href="https://bitbucket.org/pmesmeur/sketch.it/issues/11/nullpointexception-when-using-org.pmesmeur.sketchit">Issue-11</a>: NullPointException when using SketchIt!</li>
+       <li>Do not display inner classes when they came from inherited class</li>
+      </ul>
+      <p><u>v0.03</u></p>
+      <ul>
+       <li>Update plugin.xml</li>
+      </ul>
+      <p><u>v0.02</u></p>
+      <ul>
+       <li>Sort classes and modules alphabetically</li>
+       <li>Do not display methods and attributes in class diagram at module level</li>
+       <li>Handle inner classes</li>
+       <li>Indent generated PlantUML code</li>
+       <li>Enhance "attributes vs association" handling</li>
+       <li>Write enum values</li>
+      </ul>
+      <p><u>v0.01</u></p>
+      <ul>
+       <li>Create the plugin</li>
+      </ul>
+    ]]>
+  </change-notes>
 
-    <depends>com.intellij.modules.platform</depends>
+  <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/build_number_ranges.html for description -->
+<!--  <idea-version since-build="173.0"/>-->
+
+  <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/plugin_compatibility.html
+       on how to target different products -->
+  <!-- uncomment to enable plugin in all products
+  <depends>com.intellij.modules.lang</depends>
+  -->
+
+  <extensions defaultExtensionNs="com.intellij">
+    <!-- Add your extensions here -->
+  </extensions>
+
     <depends>org.jetbrains.android</depends>
-    <depends>org.jetbrains.kotlin</depends>
+    <depends>com.intellij.modules.androidstudio</depends>
+    <depends>com.intellij.modules.platform</depends>
 
+  <actions>
+      <group id="SketchIt.SampleMenu" text="_Sketch.It!" description="Generate SketchIt! Diagrams">
+          <add-to-group group-id="ToolsMenu" anchor="last" />
+          <separator/>
+          <action id="Myplugin.Textboxes" class="org.pmesmeur.sketchit.SketchIt" text="Sketch It! (generate UML diagrams)" description="Generate component diagrams" />
+      </group>
+  </actions>
 
-
-    <actions>
-        <group id="LchAddPrefix" text="LchAddPrefix" description="LchAddPrefix idea" popup="true">
-            <action id="com.developerphil.adbidea.action.AddPrefixToBatchFile"
-                    class="com.developerphil.adbidea.action.AddPrefixToBatchFile"
-                    text="Rename"
-                    description="Rename ....">
-            </action>
-
-            <add-to-group group-id="AndroidToolsGroup" anchor="first"/>
-            <separator/>
-
-        </group>
-    </actions>
-
-    <project-components>
-        <component>
-            <implementation-class>com.developerphil.adbidea.ObjectGraph</implementation-class>
-        </component>
-    </project-components>
-
-    <application-components>
-        <component>
-            <implementation-class>com.developerphil.adbidea.Application</implementation-class>
-        </component>
-    </application-components>
 </idea-plugin>
