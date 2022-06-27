@@ -1,5 +1,6 @@
 package org.pmesmeur.sketchit.diagram.clazz;
 
+import com.intellij.lang.jvm.JvmModifier;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.module.Module;
 import com.intellij.openapi.project.Project;
@@ -9,6 +10,7 @@ import com.intellij.psi.util.ClassUtil;
 import com.intellij.psi.util.PsiTypesUtil;
 import com.intellij.util.VisibilityUtil;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.pmesmeur.sketchit.PlugUtil;
 import org.pmesmeur.sketchit.diagram.plantuml.PlantUmlWriter;
 import org.pmesmeur.sketchit.diagram.sorters.ClassSorter;
@@ -115,7 +117,7 @@ public class ClassDiagramGenerator {
 
 
     private Set<PsiClass> createListOfClassesToManage(PsiClass[] targetClasses) {
-        Finder finder = new Finder(project, module,targetClasses);
+        Finder finder = new Finder(project, module, targetClasses);
 
         Set<PsiClass> classes = finder.getClasses();
         if (classes.isEmpty()) {
@@ -279,8 +281,8 @@ public class ClassDiagramGenerator {
 
 
         private List<String> computePackageStack(String packageName) {
-           // LOG.info("packageName:" + packageName);
-           // PlugUtil.showMsg("packageName:" + packageName, project);
+            // LOG.info("packageName:" + packageName);
+            // PlugUtil.showMsg("packageName:" + packageName, project);
 
             List<String> packageStack = new ArrayList<String>();
 
@@ -404,7 +406,9 @@ public class ClassDiagramGenerator {
             PsiClass[] allInnerClasses = clazz.getAllInnerClasses();
 
             for (PsiClass innerClass : ClassSorter.sort(allInnerClasses)) {
-                generateInnerClass(innerClass);
+                if (!innerClass.hasModifierProperty(PsiModifier.PRIVATE)) {//todo
+                    generateInnerClass(innerClass);
+                }
             }
         }
 
@@ -488,9 +492,9 @@ public class ClassDiagramGenerator {
                 if (getFieldDisplayType(clazz, field) == FieldDisplayType.AGGREGATION) {
                     PsiClass typeClass = PsiTypesUtil.getPsiClass(field.getType());
 
-                   // PlugUtil.showMsg("typeClass:" + typeClass, project);
+                    // PlugUtil.showMsg("typeClass:" + typeClass, project);
                     if (typeClass != null) {
-                       // PlugUtil.showMsg("typeClass:" + typeClass.getQualifiedName(), project);
+                        // PlugUtil.showMsg("typeClass:" + typeClass.getQualifiedName(), project);
                         new ClassGenerator(typeClass).generate();
                     }
                 }
@@ -504,7 +508,7 @@ public class ClassDiagramGenerator {
             List<PsiClass> sortedInnerClasses = ClassSorter.sort(innerClasses);
 
             for (PsiClass innerClass : sortedInnerClasses) {
-                if (innerClass.getParent() == clazz) {
+                if (innerClass.getParent() == clazz&& !innerClass.hasModifierProperty(PsiModifier.PRIVATE)) {//todo
                     LOG.info("  - generating association from class " + clazz.getQualifiedName() + " to inner class " + innerClass.getQualifiedName());
                     plantUmlWriter.addInnerClassesAssociation(clazz.getQualifiedName(), innerClass.getQualifiedName());
                 }
@@ -512,7 +516,9 @@ public class ClassDiagramGenerator {
 
             for (PsiClass innerClass : sortedInnerClasses) {
                 LOG.info("  - generating relationships for inner class " + innerClass.getQualifiedName() + " of class " + clazz.getQualifiedName());
-                generateInnerClassesRelationships(innerClass);
+                if(!innerClass.hasModifierProperty(PsiModifier.PRIVATE)) {//todo
+                    generateInnerClassesRelationships(innerClass);
+                }
             }
         }
 
