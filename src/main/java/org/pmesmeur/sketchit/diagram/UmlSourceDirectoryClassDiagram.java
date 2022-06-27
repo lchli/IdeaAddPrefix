@@ -13,7 +13,7 @@ import java.io.IOException;
 class UmlSourceDirectoryClassDiagram extends UmlDiagram {
     private final Module module;
     private final VirtualFile moduleDirectory;
-    private PsiClass[] targetClasses;
+    private final PsiClass[] targetClasses;
 
 
 

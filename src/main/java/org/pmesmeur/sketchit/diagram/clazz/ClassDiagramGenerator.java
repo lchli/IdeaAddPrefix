@@ -488,9 +488,9 @@ public class ClassDiagramGenerator {
                 if (getFieldDisplayType(clazz, field) == FieldDisplayType.AGGREGATION) {
                     PsiClass typeClass = PsiTypesUtil.getPsiClass(field.getType());
 
-                    PlugUtil.showMsg("typeClass:" + typeClass, project);
+                   // PlugUtil.showMsg("typeClass:" + typeClass, project);
                     if (typeClass != null) {
-                        PlugUtil.showMsg("typeClass:" + typeClass.getQualifiedName(), project);
+                       // PlugUtil.showMsg("typeClass:" + typeClass.getQualifiedName(), project);
                         new ClassGenerator(typeClass).generate();
                     }
                 }

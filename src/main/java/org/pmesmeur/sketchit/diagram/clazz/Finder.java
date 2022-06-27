@@ -10,6 +10,7 @@ import org.jetbrains.jps.model.java.JavaModuleSourceRootTypes;
 import org.jetbrains.kotlin.psi.KtFile;
 import org.pmesmeur.sketchit.diagram.JavaFileFinder;
 
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -23,7 +24,7 @@ public class Finder {
     private Set<String> packages;
 
 
-    public Finder(Project project, Module module,PsiClass[] targetClasses) {
+    public Finder(Project project, Module module, PsiClass[] targetClasses) {
         this.project = project;
         this.module = module;
         this.packages = new HashSet<String>();
@@ -31,11 +32,9 @@ public class Finder {
     }
 
 
-
     public Set<PsiClass> getClasses() {
         return classes;
     }
-
 
 
     public Set<String> getPackages() {
@@ -43,17 +42,29 @@ public class Finder {
     }
 
 
-
     private Set<PsiClass> findClasses(PsiClass[] targetClasses) {
         JavaFileFinder javaFileFinder = new JavaFileFinder(project, module);
 
-       return computeManagedPsiClassesFromFiles(javaFileFinder.getFoundFiles(),javaFileFinder.getFoundFilesKt(),targetClasses);
+        return computeManagedPsiClassesFromFiles(javaFileFinder.getFoundFiles(), javaFileFinder.getFoundFilesKt(), targetClasses);
     }
 
 
-
-    private Set<PsiClass> computeManagedPsiClassesFromFiles(List<PsiJavaFile> pfiles,List<KtFile> ktFiles,PsiClass[] targetClasses) {
+    private Set<PsiClass> computeManagedPsiClassesFromFiles(List<PsiJavaFile> pfiles, List<KtFile> ktFiles, PsiClass[] targetClasses) {
         Set<PsiClass> managedPsiClasses = new HashSet<PsiClass>();
+        if (targetClasses != null) {//todo??
+            for (PsiClass clazz : targetClasses) {
+                PsiFile theContainingFile = clazz.getContainingFile();
+                if (theContainingFile instanceof PsiJavaFile) {
+                    recordFilePackageAsKnownPackage((PsiJavaFile) theContainingFile);
+                } else if (theContainingFile instanceof KtFile) {
+                    recordFilePackageAsKnownPackage((KtFile) theContainingFile);
+                }
+
+                managedPsiClasses.add(clazz);
+            }
+
+            return managedPsiClasses;
+        }
 
         for (PsiJavaFile file : pfiles) {
             recordFilePackageAsKnownPackage(file);
@@ -61,7 +72,7 @@ public class Finder {
             if (!isTestFile(file)) {
                 PsiClass[] classes = file.getClasses();
                 for (PsiClass clazz : classes) {
-                    if(isIn(targetClasses,clazz)) {
+                    if (isIn(targetClasses, clazz)) {
                         managedPsiClasses.add(clazz);
                     }
                 }
@@ -74,7 +85,7 @@ public class Finder {
             if (!isTestFile(file)) {
                 PsiClass[] classes = file.getClasses();
                 for (PsiClass clazz : classes) {
-                    if(isIn(targetClasses,clazz)) {
+                    if (isIn(targetClasses, clazz)) {
                         managedPsiClasses.add(clazz);
                     }
                 }
@@ -85,11 +96,11 @@ public class Finder {
     }
 
     private boolean isIn(PsiClass[] targetClasses, PsiClass clazz) {
-        if(targetClasses==null){
+        if (targetClasses == null) {
             return true;
         }
-        for(PsiClass psiClass:targetClasses){
-            if(psiClass.getQualifiedName().equals(clazz.getQualifiedName())){
+        for (PsiClass psiClass : targetClasses) {
+            if (psiClass.getQualifiedName().equals(clazz.getQualifiedName())) {
                 return true;
             }
         }
@@ -100,18 +111,17 @@ public class Finder {
     private void recordFilePackageAsKnownPackage(PsiJavaFile local) {
         packages.add(local.getPackageName());
     }
+
     private void recordFilePackageAsKnownPackage(KtFile local) {
         packages.add(local.getPackageName());
     }
 
 
-
-
     private boolean isTestFile(PsiFile file) {
         return ModuleRootManager.getInstance(module)
-                                .getFileIndex()
-                                .isUnderSourceRootOfType(file.getVirtualFile(),
-                                                         JavaModuleSourceRootTypes.TESTS);
+                .getFileIndex()
+                .isUnderSourceRootOfType(file.getVirtualFile(),
+                        JavaModuleSourceRootTypes.TESTS);
     }
 
 }

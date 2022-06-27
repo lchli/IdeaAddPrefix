@@ -76,7 +76,7 @@ public class SketchIt extends AnAction {
         umlDiagramsGenerator.generateComponentDiagram();
         umlDiagramsGenerator.generateClassDiagrams();
 
-        Notifyer.info("PlantUML model generated successfully");
+        Notifyer.info("类图成功生成！");
     }
 
 }

@@ -8,6 +8,7 @@ import com.intellij.openapi.roots.ProjectRootManager;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.*;
 import com.intellij.refactoring.actions.BaseRefactoringAction;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.kotlin.psi.KtClass;
 import org.jetbrains.kotlin.psi.KtFile;
 import org.jetbrains.kotlin.psi.KtObjectDeclaration;
@@ -39,24 +40,25 @@ public class UmlDiagramsGenerator {
     public void generateClassDiagrams() {
         PsiElement[] psiElements = BaseRefactoringAction.getPsiElementArray(mAnActionEvent.getDataContext());
         if (psiElements == null || psiElements.length <= 0) {
+            Notifyer.info("未选择元素=================!!!");
             return;
         }
         PsiElement selectedPsiElement = psiElements[0];
 
-        Notifyer.info("selectedPsiElement:"+selectedPsiElement);
+        Notifyer.info("selectedPsiElement:" + selectedPsiElement);
 
-        Module module=null;
+        Module module = null;
 
         if (selectedPsiElement instanceof PsiFile) {
-             module = ProjectRootManager.getInstance(project).getFileIndex().getModuleForFile(((PsiFile) selectedPsiElement).getVirtualFile());
+            module = ProjectRootManager.getInstance(project).getFileIndex().getModuleForFile(((PsiFile) selectedPsiElement).getVirtualFile());
 
-        }else if (selectedPsiElement instanceof PsiDirectory) {
+        } else if (selectedPsiElement instanceof PsiDirectory) {
             module = ProjectRootManager.getInstance(project).getFileIndex().getModuleForFile(((PsiDirectory) selectedPsiElement).getVirtualFile());
-        }else if (selectedPsiElement instanceof PsiClass) {
+        } else if (selectedPsiElement instanceof PsiClass) {
             module = ProjectRootManager.getInstance(project).getFileIndex().getModuleForFile(((PsiClass) selectedPsiElement).getContainingFile().getVirtualFile());
-        }else if (selectedPsiElement instanceof KtClass) {
+        } else if (selectedPsiElement instanceof KtClass) {
             module = ProjectRootManager.getInstance(project).getFileIndex().getModuleForFile(((KtClass) selectedPsiElement).getContainingFile().getVirtualFile());
-        }else if (selectedPsiElement instanceof KtObjectDeclaration) {
+        } else if (selectedPsiElement instanceof KtObjectDeclaration) {
             module = ProjectRootManager.getInstance(project).getFileIndex().getModuleForFile(((KtObjectDeclaration) selectedPsiElement).getContainingFile().getVirtualFile());
         }
 
@@ -68,7 +70,7 @@ public class UmlDiagramsGenerator {
         Notifyer.info("selected module:" + module.getName());
 
         generateModuleClassDiagram(module);
-        generateModuleClassDiagramForEachSourceDirectory(module);
+        generateModuleClassDiagramForEachSourceDirectory(module, selectedPsiElement);
 
 //        ModuleManager moduleManager = ModuleManager.getInstance(project);
 //        for (Module module : moduleManager.getModules()) {
@@ -88,13 +90,7 @@ public class UmlDiagramsGenerator {
     }
 
 
-    private void generateModuleClassDiagramForEachSourceDirectory(Module module) {
-        PsiElement[] psiElements = BaseRefactoringAction.getPsiElementArray(mAnActionEvent.getDataContext());
-        if (psiElements == null || psiElements.length <= 0) {
-            return;
-        }
-        PsiElement selectedPsiElement = psiElements[0];
-        Notifyer.info("selectedPsiElement:" + selectedPsiElement);
+    private void generateModuleClassDiagramForEachSourceDirectory(Module module, PsiElement selectedPsiElement) {
 
         JavaFileFinder javaFileFinder = new JavaFileFinder(project, module);
 
@@ -104,7 +100,6 @@ public class UmlDiagramsGenerator {
         Notifyer.info("selectedPsiElement:" + (selectedPsiElement instanceof PsiClass));
         Notifyer.info("selectedPsiElement:" + (selectedPsiElement instanceof KtFile));
         Notifyer.info("selectedPsiElement:" + (selectedPsiElement instanceof KtClass));
-        //Notifyer.info("selectedPsiElement:"+(selectedPsiElement instanceof KtClassOrObject));
         Notifyer.info("selectedPsiElement:" + (selectedPsiElement instanceof KtObjectDeclaration));
 
 
@@ -120,30 +115,37 @@ public class UmlDiagramsGenerator {
             }
 
         } else if (selectedPsiElement instanceof PsiClass) {
-            for (VirtualFile directory : directories) {
-                generateModuleClassDiagramForSourceDirectory(module, directory, new PsiClass[]{(PsiClass) selectedPsiElement});
-            }
+            VirtualFile dir = selectedPsiElement.getContainingFile().getContainingDirectory().getVirtualFile();
+            generateModuleClassDiagramForSourceDirectory(module, dir, new PsiClass[]{(PsiClass) selectedPsiElement});
+
+//            for (VirtualFile directory : directories) {
+//                generateModuleClassDiagramForSourceDirectory(module, directory, new PsiClass[]{(PsiClass) selectedPsiElement});
+//            }
+
         } else if (selectedPsiElement instanceof KtFile) {
-            for (VirtualFile directory : directories) {
-                generateModuleClassDiagramForSourceDirectory(module, directory, ((KtFile) selectedPsiElement).getClasses());
-            }
+            VirtualFile dir = selectedPsiElement.getContainingFile().getContainingDirectory().getVirtualFile();
+            generateModuleClassDiagramForSourceDirectory(module, dir, ((KtFile) selectedPsiElement).getClasses());
+
+//            for (VirtualFile directory : directories) {
+//                generateModuleClassDiagramForSourceDirectory(module, directory, ((KtFile) selectedPsiElement).getClasses());
+//            }
         } else if (selectedPsiElement instanceof KtClass) {
-            PlugUtil.showMsg("KtClass:");
-            for (VirtualFile directory : directories) {
-                generateModuleClassDiagramForSourceDirectory(module, directory, ((KtClass) selectedPsiElement).getContainingKtFile().getClasses());
-            }
+            VirtualFile dir = selectedPsiElement.getContainingFile().getContainingDirectory().getVirtualFile();
+            generateModuleClassDiagramForSourceDirectory(module, dir, ((KtClass) selectedPsiElement).getContainingKtFile().getClasses());
+//
+//            for (VirtualFile directory : directories) {
+//                generateModuleClassDiagramForSourceDirectory(module, directory, ((KtClass) selectedPsiElement).getContainingKtFile().getClasses());
+//            }
         } else if (selectedPsiElement instanceof KtObjectDeclaration) {
-            PlugUtil.showMsg("KtObjectDeclaration:");
-            for (VirtualFile directory : directories) {
-                generateModuleClassDiagramForSourceDirectory(module, directory, ((KtObjectDeclaration) selectedPsiElement).getContainingKtFile().getClasses());
-            }
+            VirtualFile dir = selectedPsiElement.getContainingFile().getContainingDirectory().getVirtualFile();
+            generateModuleClassDiagramForSourceDirectory(module, dir, ((KtObjectDeclaration) selectedPsiElement).getContainingKtFile().getClasses());
+
+//            for (VirtualFile directory : directories) {
+//                generateModuleClassDiagramForSourceDirectory(module, directory, ((KtObjectDeclaration) selectedPsiElement).getContainingKtFile().getClasses());
+//            }
         }
 
 
-    }
-
-    private boolean isJavaClass(PsiElement element) {
-        return element.getClass().getName().equals("com.intellij.psi.impl.source.PsiClassImpl");
     }
 
 

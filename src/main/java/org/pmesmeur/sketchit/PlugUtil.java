@@ -22,13 +22,8 @@ public class PlugUtil {
 
 
     public static void showMsg(String msg, Project project, boolean showDialog) {
-       //NotificationHelper.INSTANCE.info(msg);
-       // noti.createNotification("", MessageType.ERROR).notify(project);
-       // Notifyer.warning(msg);
         Notifyer.info(msg);
-//        if (showDialog) {
-//            CommonRefactoringUtil.showErrorMessage("提示", msg, null, project);
-//        }
+
         MLogUtils.INSTANCE.log();
     }
 

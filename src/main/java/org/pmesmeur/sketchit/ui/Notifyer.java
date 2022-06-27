@@ -11,7 +11,7 @@ import static com.intellij.notification.NotificationType.WARNING;
 public final class Notifyer {
 
     private static final String GROUP_DISPLAY_ID = "Settings Error";
-    private static final String TITLE = "Sketch.It!";
+    private static final String TITLE = "lchpuml!";
 
 
     private Notifyer() {
