@@ -266,6 +266,11 @@ public class ClassDiagramGenerator {
         void generate() {
             try {
                 String packageName = getPackageName(clazz);
+                if(packageName==null){
+                    PlugUtil.showMsg("generate packageName null:"+packageName+",clazz:"+clazz);
+                    return;
+                }
+
                 List<String> packageStack = computePackageStack(packageName);
 
                 generateClassIntoPackage(packageStack);
@@ -281,8 +286,6 @@ public class ClassDiagramGenerator {
 
 
         private List<String> computePackageStack(String packageName) {
-            // LOG.info("packageName:" + packageName);
-            // PlugUtil.showMsg("packageName:" + packageName, project);
 
             List<String> packageStack = new ArrayList<String>();
 
