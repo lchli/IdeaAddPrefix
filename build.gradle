@@ -31,7 +31,7 @@ intellij {
 
     // Same IntelliJ IDEA version (2019.1.4) as target 3.5 Android Studio:
     //通过下面的连接找到对应的androidstudio的idea版本。
-    version = '211.7628.21'//https://plugins.jetbrains.com/docs/intellij/android-studio-releases-list.html#2021
+    version = '212.5712.43'//https://plugins.jetbrains.com/docs/intellij/android-studio-releases-list.html#2021
 
     // Use IntelliJ IDEA CE because it's the basis of the IntelliJ Platform:
     type = 'IC'
